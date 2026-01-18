@@ -226,7 +226,7 @@ export default function Page() {
         overflowX: 'hidden' // vertical scroll only
       }}
     >
-      {/* Header / Controls (spacious, minimal) */}
+      {/* Header / Controls */}
       <div
         style={{
           display: 'flex',
@@ -236,16 +236,19 @@ export default function Page() {
           padding: '8px 4px'
         }}
       >
-        {/* Logo (no title text) */}
+        {/* Logo + App Name (CopyAI visible) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Image
             src="/copyai_logo.png"
-            alt="Logo"
+            alt="CopyAI logo"
             width={22}
             height={22}
             priority
             style={{ display: 'block' }}
           />
+          <div style={{ fontWeight: 700, fontSize: 20 }}>
+            CopyAI
+          </div>
         </div>
 
         {/* Spacer pushes the buttons to the right */}
@@ -386,7 +389,6 @@ export default function Page() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: 6 }}>
-                  {/* Card title (user data) remains */}
                   <div style={{ fontWeight: 700, fontSize: 16 }}>{c.title || 'Untitled'}</div>
                   <div style={{ whiteSpace: 'pre-wrap', opacity: c.text ? 1 : .6 }}>
                     {c.text || '(empty)'}
@@ -431,7 +433,7 @@ export default function Page() {
                 marginBottom: 10
               }}
             >
-              {/* No modal title text */}
+              {/* No modal title */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <label
                   style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
@@ -475,7 +477,6 @@ export default function Page() {
                   }}
                 >
                   <div>
-                    {/* Keep showing per-layout name (data) but no modal title */}
                     <div style={{ fontWeight: 600 }}>{l.title}</div>
                     <div style={{ opacity: .6, fontSize: 12 }}>Saved: {fmt(l.savedAt)}</div>
                   </div>
