@@ -58,7 +58,7 @@ export default function Page() {
   const [showLibrary, setShowLibrary] = useState(false);
 
   // ----------- UI state: temporary expand/collapse per card -----------
-  // Not persisted; resets on reload / open / import.
+  // Not persisted; resets on reload.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
   function toggleExpanded(id: string) {
@@ -92,7 +92,7 @@ export default function Page() {
       borderRadius: '8px',
       padding: '10px 12px',
       zIndex: '9999'
-    } as Partial<CSSStyleDeclaration>);
+    } as CSSStyleDeclaration);
     document.body.appendChild(el);
     setTimeout(() => el.remove(), ms);
   }
@@ -118,11 +118,11 @@ export default function Page() {
     return d.toLocaleString();
   }
 
-  // Heuristic: show toggle if content likely exceeds preview
+  // Heuristic: decide if a text likely exceeds 3 lines and warrants a "Show more"
   function needsClamp(txt: string): boolean {
     if (!txt) return false;
     const lineCount = txt.split(/\r?\n/).length;
-    return lineCount > 3 || txt.length > 240; // lightweight heuristic
+    return lineCount > 3 || txt.length > 240; // simple, layout-free heuristic
   }
 
   // ----------- Page actions: Add / Edit / Delete cards -----------
@@ -173,8 +173,6 @@ export default function Page() {
   }
 
   // ----------- Layout actions: Save / Open / Delete -----------
-  const [currentLayoutTitle, setCurrentLayoutTitleState] = useState(currentLayoutTitle); // keep linter quiet (logic uses state above)
-
   function saveLayout() {
     if (cards.length === 0) {
       toast('Nothing to save (no prompts yet)');
@@ -242,28 +240,28 @@ export default function Page() {
   }
 
   // ----------- Styles for preview clamping (3 lines) -----------
-  const LINE_HEIGHT = 1.4;         // line-height multiplier
+  const LINE_HEIGHT = 1.4; // visual line-height multiplier
   const PREVIEW_LINES = 3;
-  const PREVIEW_HEIGHT_EM = `${LINE_HEIGHT * PREVIEW_LINES}em`;
+  const PREVIEW_HEIGHT = `calc(${LINE_HEIGHT}em * ${PREVIEW_LINES})`;
 
   // Collapsed preview: fixed height (equal for all), 3 lines visible, rest hidden
-  const previewCollapsedStyle = {
+  const previewCollapsedStyle: React.CSSProperties = {
     whiteSpace: 'pre-line',             // keep line breaks; allow wrapping
     display: '-webkit-box',
-    WebkitLineClamp: PREVIEW_LINES as unknown as number,
-    WebkitBoxOrient: 'vertical' as unknown as string,
-    overflow: 'hidden' as const,
-    lineHeight: LINE_HEIGHT,
-    height: PREVIEW_HEIGHT_EM,
+    WebkitLineClamp: PREVIEW_LINES as any,
+    WebkitBoxOrient: 'vertical' as any,
+    overflow: 'hidden',
+    lineHeight: LINE_HEIGHT as unknown as string, // ensure consistent box height
+    height: PREVIEW_HEIGHT,             // lock the preview box height
     opacity: 1
   };
 
   // Expanded view: full text
-  const previewExpandedStyle = {
-    whiteSpace: 'pre-wrap' as const,
-    display: 'block' as const,
-    overflow: 'visible' as const,
-    lineHeight: LINE_HEIGHT
+  const previewExpandedStyle: React.CSSProperties = {
+    whiteSpace: 'pre-wrap',
+    display: 'block',
+    overflow: 'visible',
+    lineHeight: LINE_HEIGHT as unknown as string
   };
 
   // ----------- Render -----------
@@ -346,7 +344,6 @@ export default function Page() {
             borderRadius: 8,
             padding: '10px'
           }}
-          data-nocopy
         />
 
         <textarea
@@ -363,14 +360,12 @@ export default function Page() {
             borderRadius: 8,
             padding: 10
           }}
-          data-nocopy
         />
 
         <div>
           <button
             onClick={addCard}
             style={{ background: ACCENT, color: '#fff', padding: '10px 14px', borderRadius: 8 }}
-            data-nocopy
           >
             ➕ Add (goes to bottom)
           </button>
@@ -418,7 +413,6 @@ export default function Page() {
                       borderRadius: 8,
                       padding: '8px 10px'
                     }}
-                    data-nocopy
                   />
                   <textarea
                     value={editText}
@@ -434,7 +428,6 @@ export default function Page() {
                       borderRadius: 8,
                       padding: 10
                     }}
-                    data-nocopy
                   />
                   <div style={{ display: 'flex', gap: 8 }}>
                     <button onClick={saveEdit} style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }} data-nocopy>
@@ -449,52 +442,53 @@ export default function Page() {
                 <div style={{ display: 'grid', gap: 6 }}>
                   <div style={{ fontWeight: 700, fontSize: 16 }}>{c.title || 'Untitled'}</div>
 
-                  {/* Text (3-line preview when collapsed; full text when expanded) */}
-                  <div
-                    style={{
-                      ...(isExpanded ? previewExpandedStyle : previewCollapsedStyle),
-                      opacity: c.text ? 1 : .6
-                    }}
-                  >
-                    {c.text || '(empty)'}
-                  </div>
+                  {/* Text + bottom-right toggle container */}
+                  <div style={{ position: 'relative' }}>
+                    <div
+                      style={{
+                        ...(isExpanded ? previewExpandedStyle : previewCollapsedStyle),
+                        opacity: c.text ? 1 : .6
+                      }}
+                    >
+                      {c.text || '(empty)'}
+                    </div>
 
-                  {/* Action buttons row (left: edit/delete, right: show more/less) */}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
-                    <button onClick={() => startEdit(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
-                      Edit
-                    </button>
-                    <button onClick={() => removeCard(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
-                      Delete
-                    </button>
-
-                    {/* Spacer pushes the toggle to the far right */}
-                    <div style={{ marginLeft: 'auto' }} />
-
-                    {/* Right-side Show more/less toggle */}
                     {showToggle && (
                       <button
                         data-nocopy
                         onClick={(e) => {
-                          e.stopPropagation(); // don't trigger copy
+                          e.stopPropagation(); // do not copy text when toggling
                           toggleExpanded(c.id);
                         }}
                         aria-label={isExpanded ? 'Show less' : 'Show more'}
                         title={isExpanded ? 'Show less' : 'Show more'}
                         style={{
+                          position: 'absolute',
+                          right: 0,
+                          bottom: 0,
                           background: PANEL,
                           color: TEXT,
                           border: `1px solid ${BORDER}`,
                           borderRadius: 6,
-                          padding: '6px 10px',
+                          padding: '2px 8px',
                           fontSize: 12,
-                          lineHeight: 1.2,
+                          lineHeight: 1.4,
                           cursor: 'pointer'
                         }}
                       >
                         {isExpanded ? 'Show less' : 'Show more'}
                       </button>
                     )}
+                  </div>
+
+                  {/* Action buttons */}
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button onClick={() => startEdit(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
+                      Edit
+                    </button>
+                    <button onClick={() => removeCard(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
+                      Delete
+                    </button>
                   </div>
                 </div>
               )}
@@ -533,7 +527,6 @@ export default function Page() {
                 <label
                   style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
                   title="Import a layout (JSON file with cards)"
-                  data-nocopy
                 >
                   Import Layout From File
                   <input
@@ -548,7 +541,6 @@ export default function Page() {
                   onClick={exportJSON}
                   style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
                   title="Export current layout as JSON"
-                  data-nocopy
                 >
                   Export Current Layout
                 </button>
@@ -557,7 +549,6 @@ export default function Page() {
               <button
                 onClick={() => setShowLibrary(false)}
                 style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
-                data-nocopy
               >
                 Close
               </button>
@@ -582,14 +573,12 @@ export default function Page() {
                     <button
                       onClick={() => openLayout(l.id)}
                       style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
-                      data-nocopy
                     >
                       Open
                     </button>
                     <button
                       onClick={() => deleteLayout(l.id)}
                       style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
-                      data-nocopy
                     >
                       Delete
                     </button>
@@ -604,3 +593,4 @@ export default function Page() {
     </div>
   );
 }
+``
