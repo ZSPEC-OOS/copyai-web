@@ -35,7 +35,7 @@ export default function Page() {
     return []; // start empty; you add prompts
   });
 
-  // Layout title (purely for display)
+  // Layout title (kept for logic; not displayed)
   const [currentLayoutTitle, setCurrentLayoutTitle] = useState<string>('');
 
   // Add form
@@ -236,25 +236,22 @@ export default function Page() {
           padding: '8px 4px'
         }}
       >
-        {/* Logo + Title */}
+        {/* Logo (no title text) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Image
             src="/copyai_logo.png"
-            alt="CopyAI logo"
+            alt="Logo"
             width={22}
             height={22}
             priority
             style={{ display: 'block' }}
           />
-          <div style={{ fontWeight: 700, fontSize: 20 }}>
-            CopyAI{currentLayoutTitle ? ` — ${currentLayoutTitle}` : ''}
-          </div>
         </div>
 
-        {/* Spacer */}
-        <div style={{ width: 8 }} />
+        {/* Spacer pushes the buttons to the right */}
+        <div style={{ marginLeft: 'auto' }} />
 
-        {/* Primary actions */}
+        {/* Primary actions aligned to the right */}
         <button
           onClick={saveLayout}
           style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}
@@ -270,11 +267,6 @@ export default function Page() {
         >
           📚 Library
         </button>
-
-        {/* Right helper text */}
-        <div style={{ marginLeft: 'auto', opacity: 0.7, fontSize: 13 }}>
-          Tap a card to copy its text.
-        </div>
       </div>
 
       {/* Add Form */}
@@ -289,8 +281,7 @@ export default function Page() {
           marginBottom: 16
         }}
       >
-        <div style={{ fontWeight: 600 }}>Add a new prompt</div>
-
+        {/* No section title */}
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -395,6 +386,7 @@ export default function Page() {
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: 6 }}>
+                  {/* Card title (user data) remains */}
                   <div style={{ fontWeight: 700, fontSize: 16 }}>{c.title || 'Untitled'}</div>
                   <div style={{ whiteSpace: 'pre-wrap', opacity: c.text ? 1 : .6 }}>
                     {c.text || '(empty)'}
@@ -439,9 +431,8 @@ export default function Page() {
                 marginBottom: 10
               }}
             >
+              {/* No modal title text */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>Layout Library</div>
-
                 <label
                   style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
                   title="Import a layout (JSON file with cards)"
@@ -484,6 +475,7 @@ export default function Page() {
                   }}
                 >
                   <div>
+                    {/* Keep showing per-layout name (data) but no modal title */}
                     <div style={{ fontWeight: 600 }}>{l.title}</div>
                     <div style={{ opacity: .6, fontSize: 12 }}>Saved: {fmt(l.savedAt)}</div>
                   </div>
