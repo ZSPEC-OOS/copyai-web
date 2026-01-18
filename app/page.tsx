@@ -19,6 +19,11 @@ const BORDER = 'var(--border)';
 const TEXT = 'var(--text)';
 const ACCENT = 'var(--accent)';
 
+const MIN_W = 120;
+const MAX_W = 800;
+const MIN_H = 80;
+const MAX_H = 600;
+
 export default function Page() {
   // ---------------- State ----------------
   const [boxes, setBoxes] = useState<Box[]>(() => {
@@ -45,17 +50,7 @@ export default function Page() {
     } catch {}
   }, [boxes]);
 
-  // ---------------- Clipboard ----------------
-  async function copyNow(text: string) {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast('✅ Copied');
-    } catch {
-      alert('Clipboard failed');
-    }
-  }
-
-  // ---------------- Toast (very small) ----------------
+  // ---------------- Small toast ----------------
   function toast(msg: string, ms = 1200) {
     const el = document.createElement('div');
     el.textContent = msg;
@@ -68,6 +63,16 @@ export default function Page() {
     setTimeout(() => el.remove(), ms);
   }
 
+  // ---------------- Clipboard ----------------
+  async function copyNow(text: string) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('✅ Copied');
+    } catch {
+      alert('Clipboard failed');
+    }
+  }
+
   // ---------------- Add / Edit / Delete ----------------
   function addBox() {
     const txt = (newText || '').trim();
@@ -76,7 +81,7 @@ export default function Page() {
       return;
     }
     const id = 'b' + Date.now();
-    // simple auto‑position: stack in rows
+    // simple auto‑position: 3 columns layout
     const colW = 240, gap = 20;
     const idx = boxes.length;
     const col = idx % 3;
@@ -95,7 +100,6 @@ export default function Page() {
     setEditingId(id);
     setEditText(b.text);
   }
-
   function saveEdit() {
     if (!editingId) return;
     const txt = (editText || '').trim();
@@ -104,20 +108,21 @@ export default function Page() {
     setEditText('');
     toast('💾 Saved');
   }
-
   function cancelEdit() {
     setEditingId(null);
     setEditText('');
   }
-
   function removeBox(id: string) {
     if (!confirm('Delete this box?')) return;
     setBoxes(prev => prev.filter(b => b.id !== id));
     toast('🗑 Deleted');
   }
 
-  // ---------------- Simple drag (mouse/touch) ----------------
-  function onPointerDown(e: React.PointerEvent, id: string) {
+  // ---------------- Move (drag) ----------------
+  function onPointerDownMove(e: React.PointerEvent, id: string) {
+    // Don’t start drag if we clicked an action button
+    if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
+
     const target = e.currentTarget as HTMLDivElement;
     target.setPointerCapture(e.pointerId);
 
@@ -133,7 +138,7 @@ export default function Page() {
       const dy = ev.clientY - startY;
       setBoxes(prev => prev.map(x => x.id === id ? { ...x, x: Math.round(baseX + dx), y: Math.round(baseY + dy) } : x));
     }
-    function up(ev: PointerEvent) {
+    function up() {
       target.releasePointerCapture(e.pointerId);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
@@ -142,6 +147,72 @@ export default function Page() {
     window.addEventListener('pointerup', up);
   }
 
+  // ---------------- Resize (edge handles) ----------------
+  type Edge = 'left'|'right'|'top'|'bottom';
+
+  function onPointerDownResize(e: React.PointerEvent, id: string, edge: Edge) {
+    e.stopPropagation();
+    const target = e.currentTarget as HTMLDivElement;
+    target.setPointerCapture(e.pointerId);
+
+    const startX = e.clientX;
+    const startY = e.clientY;
+
+    const b = boxes.find(b => b.id === id);
+    if (!b) return;
+
+    const base = { x: b.x, y: b.y, w: b.w, h: b.h };
+
+    function clampW(w: number) {
+      return Math.max(MIN_W, Math.min(MAX_W, w));
+    }
+    function clampH(h: number) {
+      return Math.max(MIN_H, Math.min(MAX_H, h));
+    }
+
+    function move(ev: PointerEvent) {
+      const dx = ev.clientX - startX;
+      const dy = ev.clientY - startY;
+
+      setBoxes(prev => prev.map(cur => {
+        if (cur.id !== id) return cur;
+
+        let x = base.x;
+        let y = base.y;
+        let w = base.w;
+        let h = base.h;
+
+        if (edge === 'right') {
+          w = clampW(base.w + dx);
+        }
+        if (edge === 'left') {
+          w = clampW(base.w - dx);
+          // move x so the right edge stays where it was
+          x = base.x + (base.w - w);
+        }
+        if (edge === 'bottom') {
+          h = clampH(base.h + dy);
+        }
+        if (edge === 'top') {
+          h = clampH(base.h - dy);
+          y = base.y + (base.h - h);
+        }
+
+        return { ...cur, x: Math.round(x), y: Math.round(y), w: Math.round(w), h: Math.round(h) };
+      }));
+    }
+
+    function up() {
+      target.releasePointerCapture(e.pointerId);
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+    }
+
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
+  // ---------------- Import/Export ----------------
   function exportJSON() {
     const blob = new Blob([JSON.stringify({ boxes }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -149,7 +220,6 @@ export default function Page() {
     a.download = 'layout.json';
     a.click();
   }
-
   function importJSON(file: File) {
     file.text().then(t => {
       const data = JSON.parse(t);
@@ -157,13 +227,12 @@ export default function Page() {
         alert('Invalid file');
         return;
       }
-      // normalize minimal fields
       const norm: Box[] = data.boxes.map((b: any, i: number) => ({
         id: String(b.id ?? 'b' + Date.now() + i),
         x: Number.isFinite(+b.x) ? +b.x : 20,
         y: Number.isFinite(+b.y) ? +b.y : 20,
-        w: Number.isFinite(+b.w) ? +b.w : 220,
-        h: Number.isFinite(+b.h) ? +b.h : 110,
+        w: Math.min(MAX_W, Math.max(MIN_W, Number.isFinite(+b.w) ? +b.w : 220)),
+        h: Math.min(MAX_H, Math.max(MIN_H, Number.isFinite(+b.h) ? +b.h : 110)),
         text: String(b.text ?? '')
       }));
       setBoxes(norm);
@@ -191,7 +260,7 @@ export default function Page() {
           />
         </label>
 
-        <div style={{ marginLeft: 'auto', opacity: .7 }}>Tap a box to copy its text.</div>
+        <div style={{ marginLeft: 'auto', opacity: .7 }}>Tap a box to copy its text. Drag edges to resize.</div>
       </div>
 
       {/* Add new prompt */}
@@ -225,12 +294,10 @@ export default function Page() {
         {boxes.map((b) => (
           <div
             key={b.id}
-            onPointerDown={(e) => onPointerDown(e, b.id)}
+            onPointerDown={(e) => onPointerDownMove(e, b.id)}
             onClick={(e) => {
-              // avoid copying if you just clicked the edit button
               if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
-              // If editing this box, don’t copy
-              if (editingId === b.id) return;
+              if (editingId === b.id) return; // don't copy while editing
               copyNow(b.text);
             }}
             style={{
@@ -239,7 +306,49 @@ export default function Page() {
               display: 'flex', padding: 8
             }}
           >
-            {/* When editing: show textarea */}
+            {/* Resize handles (edges). Large hit area for touch */}
+            {/* Left */}
+            <div
+              onPointerDown={(e) => onPointerDownResize(e, b.id, 'left')}
+              style={{
+                position: 'absolute', left: -6, top: '50%', marginTop: -14,
+                width: 12, height: 28, background: ACCENT, borderRadius: 6, opacity: .9,
+                cursor: 'ew-resize'
+              }}
+              title="Resize left"
+            />
+            {/* Right */}
+            <div
+              onPointerDown={(e) => onPointerDownResize(e, b.id, 'right')}
+              style={{
+                position: 'absolute', right: -6, top: '50%', marginTop: -14,
+                width: 12, height: 28, background: ACCENT, borderRadius: 6, opacity: .9,
+                cursor: 'ew-resize'
+              }}
+              title="Resize right"
+            />
+            {/* Top */}
+            <div
+              onPointerDown={(e) => onPointerDownResize(e, b.id, 'top')}
+              style={{
+                position: 'absolute', top: -6, left: '50%', marginLeft: -14,
+                width: 28, height: 12, background: ACCENT, borderRadius: 6, opacity: .9,
+                cursor: 'ns-resize'
+              }}
+              title="Resize top"
+            />
+            {/* Bottom */}
+            <div
+              onPointerDown={(e) => onPointerDownResize(e, b.id, 'bottom')}
+              style={{
+                position: 'absolute', bottom: -6, left: '50%', marginLeft: -14,
+                width: 28, height: 12, background: ACCENT, borderRadius: 6, opacity: .9,
+                cursor: 'ns-resize'
+              }}
+              title="Resize bottom"
+            />
+
+            {/* Content */}
             {editingId === b.id ? (
               <div style={{ display: 'grid', gap: 8, width: '100%' }}>
                 <textarea
@@ -258,7 +367,6 @@ export default function Page() {
                 </div>
               </div>
             ) : (
-              // Normal (not editing): show read-only text + actions
               <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, width: '100%' }}>
                 <div style={{ alignSelf: 'center', textAlign: 'center', padding: 6, overflowWrap: 'anywhere' }}>
                   {b.text || <span style={{ opacity: .6 }}>(empty)</span>}
