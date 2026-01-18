@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -13,7 +14,7 @@ type Card = {
 type LayoutEntry = {
   id: string;
   title: string;
-  savedAt: number;   // epoch ms
+  savedAt: number; // epoch ms
   cards: Card[];
 };
 
@@ -25,16 +26,16 @@ const TEXT = 'var(--text)';
 const ACCENT = 'var(--accent)';
 
 export default function Page() {
-  // ---------------- State: cards on the page ----------------
+  // ----------- State: cards on the page -----------
   const [cards, setCards] = useState<Card[]>(() => {
     try {
       const raw = localStorage.getItem('copyai_cards');
       if (raw) return JSON.parse(raw) as Card[];
     } catch {}
-    return []; // start empty; user adds prompts
+    return []; // start empty; you add prompts
   });
 
-  // Current layout title (purely for display; optional)
+  // Layout title (purely for display)
   const [currentLayoutTitle, setCurrentLayoutTitle] = useState<string>('');
 
   // Add form
@@ -46,7 +47,7 @@ export default function Page() {
   const [editTitle, setEditTitle] = useState('');
   const [editText, setEditText] = useState('');
 
-  // ---------------- State: Library (saved layouts) ----------------
+  // ----------- State: Library (saved layouts) -----------
   const [layouts, setLayouts] = useState<LayoutEntry[]>(() => {
     try {
       const raw = localStorage.getItem('copyai_layouts');
@@ -64,7 +65,7 @@ export default function Page() {
     try { localStorage.setItem('copyai_layouts', JSON.stringify(layouts)); } catch {}
   }, [layouts]);
 
-  // ---------------- Utilities ----------------
+  // ----------- Utilities -----------
   function toast(msg: string, ms = 1200) {
     const el = document.createElement('div');
     el.textContent = msg;
@@ -92,7 +93,6 @@ export default function Page() {
     }
   }
 
-  // Create a unique title by chaining "-2" until it’s unique within the library
   function nextUniqueTitle(base: string): string {
     const titles = new Set(layouts.map(l => l.title));
     let t = (base.trim() || 'Untitled');
@@ -100,13 +100,12 @@ export default function Page() {
     return t;
   }
 
-  // Format timestamp for display
   function fmt(ts: number) {
     const d = new Date(ts);
     return d.toLocaleString();
   }
 
-  // ---------------- Page actions: Add / Edit / Delete cards ----------------
+  // ----------- Page actions: Add / Edit / Delete cards -----------
   function addCard() {
     const t = title.trim();
     const x = text.trim();
@@ -116,7 +115,7 @@ export default function Page() {
     }
     const id = 'c' + Date.now();
     const newCard: Card = { id, title: t || 'Untitled', text: x, createdAt: Date.now() };
-    // Append to bottom (your preference)
+    // Append to bottom
     setCards(prev => [...prev, newCard]);
     setTitle('');
     setText('');
@@ -153,7 +152,7 @@ export default function Page() {
     toast('🗑 Deleted');
   }
 
-  // ---------------- Layout actions: Save / Open / Delete ----------------
+  // ----------- Layout actions: Save / Open / Delete -----------
   function saveLayout() {
     if (cards.length === 0) {
       toast('Nothing to save (no prompts yet)');
@@ -189,7 +188,7 @@ export default function Page() {
     toast('🗑 Layout deleted');
   }
 
-  // ---------------- Import/Export (optional) ----------------
+  // ----------- Import/Export (inside Library) -----------
   function exportJSON() {
     const blob = new Blob([JSON.stringify({ cards }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -211,14 +210,14 @@ export default function Page() {
         text: String(c.text ?? ''),
         createdAt: Number.isFinite(+c.createdAt) ? +c.createdAt : Date.now() - i
       }));
-      // Keep existing behavior: oldest at top, newest at bottom
+      // Oldest at top, newest at bottom
       norm.sort((a, b) => a.createdAt - b.createdAt);
       setCards(norm);
       toast('📥 Imported');
     }).catch(() => alert('Failed to read file'));
   }
 
-  // ---------------- Render ----------------
+  // ----------- Render -----------
   return (
     <div
       style={{
@@ -227,58 +226,56 @@ export default function Page() {
         overflowX: 'hidden' // vertical scroll only
       }}
     >
-    
-{/* Header / Controls (spacious, minimal) */}
-<div
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 12,
-    marginBottom: 16,
-    padding: '8px 4px'
-  }}
->
-  {/* Logo + Title */}
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-    <Image
-      src="/copyai_logo.png"
-      alt="CopyAI"
-      width={24}
-      height={24}
-      priority
-      style={{ borderRadius: 4 }}
-    />
-    <div style={{ fontWeight: 700, fontSize: 20 }}>
-      CopyAI{currentLayoutTitle ? ` — ${currentLayoutTitle}` : ''}
-    </div>
-  </div>
+      {/* Header / Controls (spacious, minimal) */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 12,
+          marginBottom: 16,
+          padding: '8px 4px'
+        }}
+      >
+        {/* Logo + Title */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Image
+            src="/copyai_logo.png"
+            alt="CopyAI logo"
+            width={22}
+            height={22}
+            priority
+            style={{ display: 'block' }}
+          />
+          <div style={{ fontWeight: 700, fontSize: 20 }}>
+            CopyAI{currentLayoutTitle ? ` — ${currentLayoutTitle}` : ''}
+          </div>
+        </div>
 
-  {/* Left-side spacer */}
-  <div style={{ width: 8 }} />
+        {/* Spacer */}
+        <div style={{ width: 8 }} />
 
-  {/* Primary actions */}
-  <button
-    onClick={saveLayout}
-    style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}
-    title="Save current list as a layout in the Library"
-  >
-    💾 Save Layout
-  </button>
+        {/* Primary actions */}
+        <button
+          onClick={saveLayout}
+          style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}
+          title="Save current list as a layout in the Library"
+        >
+          💾 Save Layout
+        </button>
 
-  <button
-    onClick={() => setShowLibrary(true)}
-    style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}
-    title="Open Library"
-  >
-    📚 Library
-  </button>
+        <button
+          onClick={() => setShowLibrary(true)}
+          style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}
+          title="Open Library"
+        >
+          📚 Library
+        </button>
 
-  {/* Right grow + helper text */}
-  <div style={{ marginLeft: 'auto', opacity: 0.7, fontSize: 13 }}>
-    Tap a card to copy its text.
-  </div>
-</div>
-
+        {/* Right helper text */}
+        <div style={{ marginLeft: 'auto', opacity: 0.7, fontSize: 13 }}>
+          Tap a card to copy its text.
+        </div>
+      </div>
 
       {/* Add Form */}
       <div
@@ -286,10 +283,10 @@ export default function Page() {
           background: PANEL,
           border: `1px solid ${BORDER}`,
           borderRadius: 12,
-          padding: 12,
+          padding: 16,
           display: 'grid',
-          gap: 8,
-          marginBottom: 12
+          gap: 10,
+          marginBottom: 16
         }}
       >
         <div style={{ fontWeight: 600 }}>Add a new prompt</div>
@@ -325,7 +322,10 @@ export default function Page() {
         />
 
         <div>
-          <button onClick={addCard} style={{ background: ACCENT, color: '#fff', padding: '10px 14px', borderRadius: 8 }}>
+          <button
+            onClick={addCard}
+            style={{ background: ACCENT, color: '#fff', padding: '10px 14px', borderRadius: 8 }}
+          >
             ➕ Add (goes to bottom)
           </button>
         </div>
@@ -414,7 +414,7 @@ export default function Page() {
         })}
       </div>
 
-      {/* Library Modal */}
+      {/* Library Modal (with Import/Export inside) */}
       {showLibrary && (
         <div
           onClick={() => setShowLibrary(false)}
@@ -430,50 +430,47 @@ export default function Page() {
               width: 'min(720px, 92vw)', maxHeight: '80vh', overflow: 'auto', padding: 16
             }}
           >
-           
-<div
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: 8,
-    justifyContent: 'space-between',
-    marginBottom: 10
-  }}
->
-  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-    <div style={{ fontWeight: 700, fontSize: 16 }}>Layout Library</div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                justifyContent: 'space-between',
+                marginBottom: 10
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Layout Library</div>
 
-    {/* Import & Export moved here */}
-    <label
-      style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
-      title="Import a layout (JSON file with cards)"
-    >
-      Import Layout From File
-      <input
-        type="file"
-        accept="application/json"
-        hidden
-        onChange={(e) => e.target.files && importJSON(e.target.files[0])}
-      />
-    </label>
+                <label
+                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
+                  title="Import a layout (JSON file with cards)"
+                >
+                  Import Layout From File
+                  <input
+                    type="file"
+                    accept="application/json"
+                    hidden
+                    onChange={(e) => e.target.files && importJSON(e.target.files[0])}
+                  />
+                </label>
 
-    <button
-      onClick={exportJSON}
-      style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
-      title="Export current layout as JSON"
-    >
-      Export Current Layout
-    </button>
-  </div>
+                <button
+                  onClick={exportJSON}
+                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
+                  title="Export current layout as JSON"
+                >
+                  Export Current Layout
+                </button>
+              </div>
 
-  <button
-    onClick={() => setShowLibrary(false)}
-    style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
-  >
-    Close
-  </button>
-</div>
-``
+              <button
+                onClick={() => setShowLibrary(false)}
+                style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
+              >
+                Close
+              </button>
+            </div>
 
             {layouts.length === 0 && <div style={{ opacity: .7 }}>(Library is empty)</div>}
 
