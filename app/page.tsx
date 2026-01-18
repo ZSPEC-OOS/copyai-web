@@ -1,15 +1,13 @@
 
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
-type Box = {
+type Card = {
   id: string;
-  x: number;
-  y: number;
-  w: number;
-  h: number;
+  title: string;
   text: string;
+  createdAt: number;
 };
 
 const BG = 'var(--bg)';
@@ -19,290 +17,153 @@ const BORDER = 'var(--border)';
 const TEXT = 'var(--text)';
 const ACCENT = 'var(--accent)';
 
-const MIN_W = 120;
-const MAX_W = 800;
-const MIN_H = 80;
-const MAX_H = 600;
-const GRID = 8;          // snap step in pixels
-const MOVE_THRESHOLD = 3; // px movement before we consider it a “drag”
-
-function snap(n: number, step = GRID) {
-  return Math.round(n / step) * step;
-}
-
 export default function Page() {
   // ---------------- State ----------------
-  const [boxes, setBoxes] = useState<Box[]>(() => {
+  const [cards, setCards] = useState<Card[]>(() => {
     try {
-      const raw = localStorage.getItem('copyai_boxes');
-      if (raw) return JSON.parse(raw);
+      const raw = localStorage.getItem('copyai_cards');
+      if (raw) return JSON.parse(raw) as Card[];
     } catch {}
-    return [
-      { id: 'b1', x: 20,  y: 20,  w: 220, h: 110, text: 'Prompt 1' },
-      { id: 'b2', x: 260, y: 20,  w: 220, h: 110, text: 'Prompt 2' },
-      { id: 'b3', x: 500, y: 20,  w: 220, h: 110, text: 'Prompt 3' },
-    ];
+    return []; // start empty; user adds prompts
   });
 
-  const [newText, setNewText] = useState('');
+  // Add form
+  const [title, setTitle] = useState('');
+  const [text, setText] = useState('');
+
+  // Inline edit state
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState('');
   const [editText, setEditText] = useState('');
-  const hostRef = useRef<HTMLDivElement>(null);
 
-  // Track if we just dragged/resized to block accidental clicks/copies.
-  const justDraggedRef = useRef(false);
-
+  // Persist
   useEffect(() => {
     try {
-      localStorage.setItem('copyai_boxes', JSON.stringify(boxes));
+      localStorage.setItem('copyai_cards', JSON.stringify(cards));
     } catch {}
-  }, [boxes]);
+  }, [cards]);
 
-  // ---------------- Small toast ----------------
+  // ---------------- Utilities ----------------
   function toast(msg: string, ms = 1200) {
     const el = document.createElement('div');
     el.textContent = msg;
     Object.assign(el.style, {
-      position: 'fixed', right: '12px', bottom: '12px',
-      background: SURFACE, color: TEXT, border: `1px solid ${BORDER}`,
-      borderRadius: '8px', padding: '10px 12px', zIndex: '9999'
+      position: 'fixed',
+      right: '12px',
+      bottom: '12px',
+      background: SURFACE,
+      color: TEXT,
+      border: `1px solid ${BORDER}`,
+      borderRadius: '8px',
+      padding: '10px 12px',
+      zIndex: '9999'
     } as CSSStyleDeclaration);
     document.body.appendChild(el);
     setTimeout(() => el.remove(), ms);
   }
 
-  // ---------------- Clipboard ----------------
-  async function copyNow(text: string) {
+  async function copyNow(value: string) {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(value);
       toast('✅ Copied');
     } catch {
       alert('Clipboard failed');
     }
   }
 
-  // ---------------- Add / Edit / Delete ----------------
-  function addBox() {
-    const txt = (newText || '').trim();
-    if (!txt) {
-      toast('Enter some text first');
+  // ---------------- Actions ----------------
+  function addCard() {
+    const t = title.trim();
+    const x = text.trim();
+    if (!t && !x) {
+      toast('Enter a title or text first');
       return;
     }
-    const id = 'b' + Date.now();
-    const colW = 240, gap = 20;
-    const idx = boxes.length;
-    const col = idx % 3;
-    const row = Math.floor(idx / 3);
-    const x = 20 + col * (colW + gap);
-    const y = 20 + row * (120 + gap);
-
-    setBoxes(prev => [...prev, { id, x, y, w: 220, h: 110, text: txt }]);
-    setNewText('');
+    const id = 'c' + Date.now();
+    const newCard: Card = { id, title: t || 'Untitled', text: x, createdAt: Date.now() };
+    // Add to TOP
+    setCards(prev => [newCard, ...prev]);
+    setTitle('');
+    setText('');
     toast('➕ Added');
   }
 
   function startEdit(id: string) {
-    const b = boxes.find(b => b.id === id);
-    if (!b) return;
+    const c = cards.find(c => c.id === id);
+    if (!c) return;
     setEditingId(id);
-    setEditText(b.text);
+    setEditTitle(c.title);
+    setEditText(c.text);
   }
 
   function saveEdit() {
     if (!editingId) return;
-    const txt = (editText || '').trim();
-    setBoxes(prev => prev.map(b => b.id === editingId ? { ...b, text: txt || b.text } : b));
+    const t = editTitle.trim() || 'Untitled';
+    setCards(prev => prev.map(c => c.id === editingId ? { ...c, title: t, text: editText } : c));
     setEditingId(null);
+    setEditTitle('');
     setEditText('');
     toast('💾 Saved');
   }
 
   function cancelEdit() {
     setEditingId(null);
+    setEditTitle('');
     setEditText('');
   }
 
-  function removeBox(id: string) {
-    if (!confirm('Delete this box?')) return;
-    setBoxes(prev => prev.filter(b => b.id !== id));
+  function removeCard(id: string) {
+    if (!confirm('Delete this prompt?')) return;
+    setCards(prev => prev.filter(c => c.id !== id));
     toast('🗑 Deleted');
-  }
-
-  // ------ Scroll/selection lock helpers while dragging/resizing ------
-  const prevUserSelect = useRef<string>('');
-  const prevTouchAction = useRef<string>('');
-  const prevOverscroll = useRef<string>('');
-
-  function lockInteraction() {
-    // Lock text selection
-    prevUserSelect.current = document.body.style.userSelect;
-    document.body.style.userSelect = 'none';
-    // Lock touch scrolling inside the canvas
-    if (hostRef.current) {
-      prevTouchAction.current = (hostRef.current.style as any).touchAction || '';
-      prevOverscroll.current = (hostRef.current.style as any).overscrollBehavior || '';
-      (hostRef.current.style as any).touchAction = 'none';
-      (hostRef.current.style as any).overscrollBehavior = 'contain';
-    }
-  }
-
-  function unlockInteraction() {
-    document.body.style.userSelect = prevUserSelect.current;
-    if (hostRef.current) {
-      (hostRef.current.style as any).touchAction = prevTouchAction.current;
-      (hostRef.current.style as any).overscrollBehavior = prevOverscroll.current;
-    }
-  }
-
-  // ---------------- Move (drag) ----------------
-  function onPointerDownMove(e: React.PointerEvent, id: string) {
-    if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
-    const target = e.currentTarget as HTMLDivElement;
-    target.setPointerCapture(e.pointerId);
-    e.preventDefault(); // hint to stop scroll-on-touch
-
-    lockInteraction();
-    justDraggedRef.current = false;
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const b = boxes.find(b => b.id === id);
-    if (!b) return;
-    const baseX = b.x;
-    const baseY = b.y;
-
-    function move(ev: PointerEvent) {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      if (Math.abs(dx) > MOVE_THRESHOLD || Math.abs(dy) > MOVE_THRESHOLD) {
-        justDraggedRef.current = true;
-      }
-      setBoxes(prev => prev.map(x => x.id === id
-        ? { ...x, x: snap(baseX + dx), y: snap(baseY + dy) }
-        : x));
-    }
-
-    function up() {
-      target.releasePointerCapture(e.pointerId);
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      // Let click/copy handlers occur only if user didn't drag
-      setTimeout(() => { justDraggedRef.current = false; }, 0);
-      unlockInteraction();
-    }
-
-    window.addEventListener('pointermove', move, { passive: false });
-    window.addEventListener('pointerup', up, { passive: true });
-  }
-
-  // ---------------- Resize (edge handles) ----------------
-  type Edge = 'left'|'right'|'top'|'bottom';
-
-  function onPointerDownResize(e: React.PointerEvent, id: string, edge: Edge) {
-    e.stopPropagation();
-    const target = e.currentTarget as HTMLDivElement;
-    target.setPointerCapture(e.pointerId);
-    e.preventDefault();
-
-    lockInteraction();
-    justDraggedRef.current = false;
-
-    const startX = e.clientX;
-    const startY = e.clientY;
-
-    const b = boxes.find(b => b.id === id);
-    if (!b) return;
-
-    const base = { x: b.x, y: b.y, w: b.w, h: b.h };
-
-    function clampW(w: number) {
-      return Math.max(MIN_W, Math.min(MAX_W, w));
-    }
-    function clampH(h: number) {
-      return Math.max(MIN_H, Math.min(MAX_H, h));
-    }
-
-    function move(ev: PointerEvent) {
-      const dx = ev.clientX - startX;
-      const dy = ev.clientY - startY;
-      if (Math.abs(dx) > MOVE_THRESHOLD || Math.abs(dy) > MOVE_THRESHOLD) {
-        justDraggedRef.current = true;
-      }
-
-      setBoxes(prev => prev.map(cur => {
-        if (cur.id !== id) return cur;
-
-        let x = base.x;
-        let y = base.y;
-        let w = base.w;
-        let h = base.h;
-
-        if (edge === 'right') w = clampW(base.w + dx);
-        if (edge === 'left')  { w = clampW(base.w - dx); x = base.x + (base.w - w); }
-        if (edge === 'bottom') h = clampH(base.h + dy);
-        if (edge === 'top')   { h = clampH(base.h - dy); y = base.y + (base.h - h); }
-
-        // snap x,y,w,h to grid
-        return {
-          ...cur,
-          x: snap(x),
-          y: snap(y),
-          w: Math.max(MIN_W, snap(w)),
-          h: Math.max(MIN_H, snap(h)),
-        };
-      }));
-    }
-
-    function up() {
-      target.releasePointerCapture(e.pointerId);
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      setTimeout(() => { justDraggedRef.current = false; }, 0);
-      unlockInteraction();
-    }
-
-    window.addEventListener('pointermove', move, { passive: false });
-    window.addEventListener('pointerup', up, { passive: true });
   }
 
   // ---------------- Import/Export ----------------
   function exportJSON() {
-    const blob = new Blob([JSON.stringify({ boxes }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ cards }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = 'layout.json';
+    a.download = 'prompts.json';
     a.click();
   }
 
   function importJSON(file: File) {
     file.text().then(t => {
       const data = JSON.parse(t);
-      if (!data || !Array.isArray(data.boxes)) {
+      if (!data || !Array.isArray(data.cards)) {
         alert('Invalid file');
         return;
       }
-      const norm: Box[] = data.boxes.map((b: any, i: number) => ({
-        id: String(b.id ?? 'b' + Date.now() + i),
-        x: Number.isFinite(+b.x) ? snap(+b.x) : 20,
-        y: Number.isFinite(+b.y) ? snap(+b.y) : 20,
-        w: Math.min(MAX_W, Math.max(MIN_W, Number.isFinite(+b.w) ? snap(+b.w) : 220)),
-        h: Math.min(MAX_H, Math.max(MIN_H, Number.isFinite(+b.h) ? snap(+b.h) : 110)),
-        text: String(b.text ?? '')
+      const norm: Card[] = data.cards.map((c: any, i: number) => ({
+        id: String(c.id ?? 'c' + Date.now() + i),
+        title: String(c.title ?? 'Untitled'),
+        text: String(c.text ?? ''),
+        createdAt: Number.isFinite(+c.createdAt) ? +c.createdAt : Date.now() - i
       }));
-      setBoxes(norm);
+      // Keep newest first
+      norm.sort((a, b) => b.createdAt - a.createdAt);
+      setCards(norm);
       toast('📥 Imported');
     }).catch(() => alert('Failed to read file'));
   }
 
+  // ---------------- Render ----------------
   return (
-    <div style={{ minHeight: '100svh', padding: 12 }}>
-      {/* Top controls */}
+    <div
+      style={{
+        minHeight: '100svh',
+        padding: 12,
+        overflowX: 'hidden' // only vertical scrolling
+      }}
+    >
+      {/* Header / Controls */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
         <div style={{ fontWeight: 700, fontSize: 18 }}>CopyAI (Web)</div>
 
         <button onClick={exportJSON} style={{ marginLeft: 8, background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}>
           Export
         </button>
+
         <label style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }}>
           Import
           <input
@@ -313,129 +174,150 @@ export default function Page() {
           />
         </label>
 
-        <div style={{ marginLeft: 'auto', opacity: .7 }}>
-          Tap to copy. Drag box to move (scroll locked while dragging). Drag edges to resize (snaps to {GRID}px).
-        </div>
+        <div style={{ marginLeft: 'auto', opacity: .7 }}>Tap a card to copy its text.</div>
       </div>
 
-      {/* Add new prompt */}
-      <div style={{
-        background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 12, padding: 12,
-        display: 'grid', gap: 8, marginBottom: 12
-      }}>
+      {/* Add Form */}
+      <div
+        style={{
+          background: PANEL,
+          border: `1px solid ${BORDER}`,
+          borderRadius: 12,
+          padding: 12,
+          display: 'grid',
+          gap: 8,
+          marginBottom: 12
+        }}
+      >
         <div style={{ fontWeight: 600 }}>Add a new prompt</div>
-        <textarea
-          value={newText}
-          onChange={(e) => setNewText(e.target.value)}
-          placeholder="Type or paste your prompt here…"
-          rows={4}
+
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Title (e.g., Outreach – Follow-up #1)"
           style={{
-            width: '100%', resize: 'vertical', background: SURFACE, color: TEXT,
-            border: `1px solid ${BORDER}`, borderRadius: 8, padding: 8
+            width: '100%',
+            background: SURFACE,
+            color: TEXT,
+            border: `1px solid ${BORDER}`,
+            borderRadius: 8,
+            padding: '10px'
           }}
         />
+
+        <textarea
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Prompt text…"
+          rows={5}
+          style={{
+            width: '100%',
+            resize: 'vertical',
+            background: SURFACE,
+            color: TEXT,
+            border: `1px solid ${BORDER}`,
+            borderRadius: 8,
+            padding: 10
+          }}
+        />
+
         <div>
-          <button onClick={addBox} style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}>
-            ➕ Add
+          <button onClick={addCard} style={{ background: ACCENT, color: '#fff', padding: '10px 14px', borderRadius: 8 }}>
+            ➕ Add (goes to top)
           </button>
         </div>
       </div>
 
-      {/* Canvas */}
+      {/* Vertical List (newest first) */}
       <div
-        ref={hostRef}
-        // Base “contain” helps prevent viewport bounce; we also enforce during drag.
-        style={{ position: 'relative', height: '65vh', overflow: 'auto', border: `1px solid ${BORDER}`, borderRadius: 12, background: BG, overscrollBehavior: 'contain' as any }}
+        style={{
+          display: 'grid',
+          gap: 12,
+          // Vertical-only scroll behavior; cards take full width and wrap content
+          overflowX: 'hidden'
+        }}
       >
-        {boxes.map((b) => (
-          <div
-            key={b.id}
-            onPointerDown={(e) => onPointerDownMove(e, b.id)}
-            onClick={(e) => {
-              if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
-              if (editingId === b.id) return;
-              if (justDraggedRef.current) return; // block accidental copy after a drag
-              copyNow(b.text);
-            }}
-            style={{
-              position: 'absolute', left: b.x, top: b.y, width: b.w, height: b.h,
-              border: `2px solid ${BORDER}`, borderRadius: 16, background: SURFACE,
-              display: 'flex', padding: 8
-            }}
-          >
-            {/* Resize handles (edges) — touch-action none prevents scroll on touch */}
-            <div
-              onPointerDown={(e) => onPointerDownResize(e, b.id, 'left')}
-              style={{
-                position: 'absolute', left: -6, top: '50%', marginTop: -14,
-                width: 12, height: 28, background: ACCENT, borderRadius: 6, opacity: .9,
-                cursor: 'ew-resize', touchAction: 'none'
-              }}
-              title="Resize left"
-            />
-            <div
-              onPointerDown={(e) => onPointerDownResize(e, b.id, 'right')}
-              style={{
-                position: 'absolute', right: -6, top: '50%', marginTop: -14,
-                width: 12, height: 28, background: ACCENT, borderRadius: 6, opacity: .9,
-                cursor: 'ew-resize', touchAction: 'none'
-              }}
-              title="Resize right"
-            />
-            <div
-              onPointerDown={(e) => onPointerDownResize(e, b.id, 'top')}
-              style={{
-                position: 'absolute', top: -6, left: '50%', marginLeft: -14,
-                width: 28, height: 12, background: ACCENT, borderRadius: 6, opacity: .9,
-                cursor: 'ns-resize', touchAction: 'none'
-              }}
-              title="Resize top"
-            />
-            <div
-              onPointerDown={(e) => onPointerDownResize(e, b.id, 'bottom')}
-              style={{
-                position: 'absolute', bottom: -6, left: '50%', marginLeft: -14,
-                width: 28, height: 12, background: ACCENT, borderRadius: 6, opacity: .9,
-                cursor: 'ns-resize', touchAction: 'none'
-              }}
-              title="Resize bottom"
-            />
+        {cards.length === 0 && (
+          <div style={{ opacity: .7, textAlign: 'center' }}>(No prompts yet — add one above)</div>
+        )}
 
-            {/* Content */}
-            {editingId === b.id ? (
-              <div style={{ display: 'grid', gap: 8, width: '100%' }}>
-                <textarea
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                  rows={4}
-                  style={{ width: '100%', resize: 'vertical', background: BG, color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 8, padding: 8 }}
-                />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button onClick={saveEdit} style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }} data-nocopy>
-                    Save
-                  </button>
-                  <button onClick={cancelEdit} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
-                    Cancel
-                  </button>
+        {cards.map((c) => {
+          const isEditing = editingId === c.id;
+          return (
+            <div
+              key={c.id}
+              onClick={(e) => {
+                // When editing, do not copy
+                if (isEditing) return;
+                // Avoid copying if clicking on an action button
+                if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
+                copyNow(c.text);
+              }}
+              style={{
+                background: SURFACE,
+                border: `1px solid ${BORDER}`,
+                borderRadius: 12,
+                padding: 12
+              }}
+            >
+              {isEditing ? (
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <input
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    placeholder="Title"
+                    style={{
+                      width: '100%',
+                      background: BG,
+                      color: TEXT,
+                      border: `1px solid ${BORDER}`,
+                      borderRadius: 8,
+                      padding: '8px 10px'
+                    }}
+                  />
+                  <textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    placeholder="Text"
+                    rows={5}
+                    style={{
+                      width: '100%',
+                      resize: 'vertical',
+                      background: BG,
+                      color: TEXT,
+                      border: `1px solid ${BORDER}`,
+                      borderRadius: 8,
+                      padding: 10
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button onClick={saveEdit} style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }} data-nocopy>
+                      Save
+                    </button>
+                    <button onClick={cancelEdit} style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }} data-nocopy>
+                      Cancel
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8, width: '100%' }}>
-                <div style={{ alignSelf: 'center', textAlign: 'center', padding: 6, overflowWrap: 'anywhere' }}>
-                  {b.text || <span style={{ opacity: .6 }}>(empty)</span>}
+              ) : (
+                <div style={{ display: 'grid', gap: 6 }}>
+                  <div style={{ fontWeight: 700, fontSize: 16 }}>{c.title || 'Untitled'}</div>
+                  <div style={{ whiteSpace: 'pre-wrap', opacity: c.text ? 1 : .6 }}>
+                    {c.text || '(empty)'}
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                    <button onClick={() => startEdit(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
+                      Edit
+                    </button>
+                    <button onClick={() => removeCard(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div style={{ display: 'grid', gap: 6, alignContent: 'start' }}>
-                  <button onClick={() => startEdit(b.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
-                    Edit
-                  </button>
-                  <button onClick={() => removeBox(b.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
-                    Delete
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
