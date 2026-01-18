@@ -223,7 +223,7 @@ export default function Page() {
 
         <div>
           <button onClick={addCard} style={{ background: ACCENT, color: '#fff', padding: '10px 14px', borderRadius: 8 }}>
-            ➕ Add (goes to top)
+            ➕ Add
           </button>
         </div>
       </div>
