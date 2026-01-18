@@ -82,7 +82,7 @@ export default function Page() {
     const id = 'c' + Date.now();
     const newCard: Card = { id, title: t || 'Untitled', text: x, createdAt: Date.now() };
     // Add to TOP
-    setCards(prev => [newCard, ...prev]);
+    setCards(prev => [...prev, newCard]);
     setTitle('');
     setText('');
     toast('➕ Added');
