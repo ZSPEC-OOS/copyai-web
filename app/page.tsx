@@ -57,6 +57,19 @@ export default function Page() {
   });
   const [showLibrary, setShowLibrary] = useState(false);
 
+  // ----------- UI state: temporary expand/collapse per card -----------
+  // Not persisted; resets on reload.
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+
+  function toggleExpanded(id: string) {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   // Persist page cards + layouts
   useEffect(() => {
     try { localStorage.setItem('copyai_cards', JSON.stringify(cards)); } catch {}
@@ -103,6 +116,13 @@ export default function Page() {
   function fmt(ts: number) {
     const d = new Date(ts);
     return d.toLocaleString();
+  }
+
+  // Heuristic: decide if a text likely exceeds 3 lines and warrants a "Show more"
+  function needsClamp(txt: string): boolean {
+    if (!txt) return false;
+    const lineCount = txt.split(/\r?\n/).length;
+    return lineCount > 3 || txt.length > 240; // simple, layout-free heuristic
   }
 
   // ----------- Page actions: Add / Edit / Delete cards -----------
@@ -177,6 +197,7 @@ export default function Page() {
     setCards(lay.cards);
     setCurrentLayoutTitle(lay.title);
     setShowLibrary(false);
+    setExpanded(new Set()); // reset temp expansion on open
     toast(`📂 Opened: ${lay.title}`);
   }
 
@@ -213,9 +234,35 @@ export default function Page() {
       // Oldest at top, newest at bottom
       norm.sort((a, b) => a.createdAt - b.createdAt);
       setCards(norm);
+      setExpanded(new Set()); // reset temp expansion on import
       toast('📥 Imported');
     }).catch(() => alert('Failed to read file'));
   }
+
+  // ----------- Styles for preview clamping (3 lines) -----------
+  const LINE_HEIGHT = 1.4; // visual line-height multiplier
+  const PREVIEW_LINES = 3;
+  const PREVIEW_HEIGHT = `calc(${LINE_HEIGHT}em * ${PREVIEW_LINES})`;
+
+  // Collapsed preview: fixed height (equal for all), 3 lines visible, rest hidden
+  const previewCollapsedStyle: React.CSSProperties = {
+    whiteSpace: 'pre-line',             // keep line breaks; allow wrapping
+    display: '-webkit-box',
+    WebkitLineClamp: PREVIEW_LINES as any,
+    WebkitBoxOrient: 'vertical' as any,
+    overflow: 'hidden',
+    lineHeight: LINE_HEIGHT as unknown as string, // ensure consistent box height
+    height: PREVIEW_HEIGHT,             // lock the preview box height
+    opacity: 1
+  };
+
+  // Expanded view: full text
+  const previewExpandedStyle: React.CSSProperties = {
+    whiteSpace: 'pre-wrap',
+    display: 'block',
+    overflow: 'visible',
+    lineHeight: LINE_HEIGHT as unknown as string
+  };
 
   // ----------- Render -----------
   return (
@@ -333,12 +380,16 @@ export default function Page() {
 
         {cards.map((c) => {
           const isEditing = editingId === c.id;
+          const isExpanded = expanded.has(c.id);
+          const showToggle = needsClamp(c.text) || isExpanded;
+
           return (
             <div
               key={c.id}
               onClick={(e) => {
                 if (isEditing) return;
                 if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
+                // Copy full text on card click (primary behavior)
                 copyNow(c.text);
               }}
               style={{
@@ -390,9 +441,47 @@ export default function Page() {
               ) : (
                 <div style={{ display: 'grid', gap: 6 }}>
                   <div style={{ fontWeight: 700, fontSize: 16 }}>{c.title || 'Untitled'}</div>
-                  <div style={{ whiteSpace: 'pre-wrap', opacity: c.text ? 1 : .6 }}>
-                    {c.text || '(empty)'}
+
+                  {/* Text + bottom-right toggle container */}
+                  <div style={{ position: 'relative' }}>
+                    <div
+                      style={{
+                        ...(isExpanded ? previewExpandedStyle : previewCollapsedStyle),
+                        opacity: c.text ? 1 : .6
+                      }}
+                    >
+                      {c.text || '(empty)'}
+                    </div>
+
+                    {showToggle && (
+                      <button
+                        data-nocopy
+                        onClick={(e) => {
+                          e.stopPropagation(); // do not copy text when toggling
+                          toggleExpanded(c.id);
+                        }}
+                        aria-label={isExpanded ? 'Show less' : 'Show more'}
+                        title={isExpanded ? 'Show less' : 'Show more'}
+                        style={{
+                          position: 'absolute',
+                          right: 0,
+                          bottom: 0,
+                          background: PANEL,
+                          color: TEXT,
+                          border: `1px solid ${BORDER}`,
+                          borderRadius: 6,
+                          padding: '2px 8px',
+                          fontSize: 12,
+                          lineHeight: 1.4,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {isExpanded ? 'Show less' : 'Show more'}
+                      </button>
+                    )}
                   </div>
+
+                  {/* Action buttons */}
                   <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                     <button onClick={() => startEdit(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
                       Edit
@@ -504,3 +593,4 @@ export default function Page() {
     </div>
   );
 }
+``
