@@ -1,6 +1,6 @@
-
 'use client';
 
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 type Card = {
@@ -227,46 +227,58 @@ export default function Page() {
         overflowX: 'hidden' // vertical scroll only
       }}
     >
-      {/* Header / Controls */}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 18 }}>
-          CopyAI (Web){currentLayoutTitle ? ` — ${currentLayoutTitle}` : ''}
-        </div>
+    
+{/* Header / Controls (spacious, minimal) */}
+<div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 16,
+    padding: '8px 4px'
+  }}
+>
+  {/* Logo + Title */}
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <Image
+      src="/copyai_logo.png"
+      alt="CopyAI"
+      width={24}
+      height={24}
+      priority
+      style={{ borderRadius: 4 }}
+    />
+    <div style={{ fontWeight: 700, fontSize: 20 }}>
+      CopyAI{currentLayoutTitle ? ` — ${currentLayoutTitle}` : ''}
+    </div>
+  </div>
 
-        {/* Save + Library */}
-        <button
-          onClick={saveLayout}
-          style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}
-          title="Save current list as a layout in the Library"
-        >
-          💾 Save Layout
-        </button>
+  {/* Left-side spacer */}
+  <div style={{ width: 8 }} />
 
-        <button
-          onClick={() => setShowLibrary(true)}
-          style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}
-          title="Open Library"
-        >
-          📚 Library
-        </button>
+  {/* Primary actions */}
+  <button
+    onClick={saveLayout}
+    style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}
+    title="Save current list as a layout in the Library"
+  >
+    💾 Save Layout
+  </button>
 
-        {/* (Optional) Export / Import */}
-        <button onClick={exportJSON} style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}>
-          Export
-        </button>
+  <button
+    onClick={() => setShowLibrary(true)}
+    style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}
+    title="Open Library"
+  >
+    📚 Library
+  </button>
 
-        <label style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }}>
-          Import
-          <input
-            type="file"
-            accept="application/json"
-            hidden
-            onChange={(e) => e.target.files && importJSON(e.target.files[0])}
-          />
-        </label>
+  {/* Right grow + helper text */}
+  <div style={{ marginLeft: 'auto', opacity: 0.7, fontSize: 13 }}>
+    Tap a card to copy its text.
+  </div>
+</div>
 
-        <div style={{ marginLeft: 'auto', opacity: .7 }}>Tap a card to copy its text.</div>
-      </div>
 
       {/* Add Form */}
       <div
@@ -418,10 +430,50 @@ export default function Page() {
               width: 'min(720px, 92vw)', maxHeight: '80vh', overflow: 'auto', padding: 16
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-              <div style={{ fontWeight: 700, fontSize: 16 }}>Layout Library</div>
-              <button onClick={() => setShowLibrary(false)} style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}>Close</button>
-            </div>
+           
+<div
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 10
+  }}
+>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ fontWeight: 700, fontSize: 16 }}>Layout Library</div>
+
+    {/* Import & Export moved here */}
+    <label
+      style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
+      title="Import a layout (JSON file with cards)"
+    >
+      Import Layout From File
+      <input
+        type="file"
+        accept="application/json"
+        hidden
+        onChange={(e) => e.target.files && importJSON(e.target.files[0])}
+      />
+    </label>
+
+    <button
+      onClick={exportJSON}
+      style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
+      title="Export current layout as JSON"
+    >
+      Export Current Layout
+    </button>
+  </div>
+
+  <button
+    onClick={() => setShowLibrary(false)}
+    style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
+  >
+    Close
+  </button>
+</div>
+``
 
             {layouts.length === 0 && <div style={{ opacity: .7 }}>(Library is empty)</div>}
 
