@@ -10,6 +10,13 @@ type Card = {
   createdAt: number;
 };
 
+type LayoutEntry = {
+  id: string;
+  title: string;
+  savedAt: number;   // epoch ms
+  cards: Card[];
+};
+
 const BG = 'var(--bg)';
 const PANEL = 'var(--panel)';
 const SURFACE = 'var(--surface)';
@@ -18,7 +25,7 @@ const TEXT = 'var(--text)';
 const ACCENT = 'var(--accent)';
 
 export default function Page() {
-  // ---------------- State ----------------
+  // ---------------- State: cards on the page ----------------
   const [cards, setCards] = useState<Card[]>(() => {
     try {
       const raw = localStorage.getItem('copyai_cards');
@@ -26,6 +33,9 @@ export default function Page() {
     } catch {}
     return []; // start empty; user adds prompts
   });
+
+  // Current layout title (purely for display; optional)
+  const [currentLayoutTitle, setCurrentLayoutTitle] = useState<string>('');
 
   // Add form
   const [title, setTitle] = useState('');
@@ -36,12 +46,23 @@ export default function Page() {
   const [editTitle, setEditTitle] = useState('');
   const [editText, setEditText] = useState('');
 
-  // Persist
-  useEffect(() => {
+  // ---------------- State: Library (saved layouts) ----------------
+  const [layouts, setLayouts] = useState<LayoutEntry[]>(() => {
     try {
-      localStorage.setItem('copyai_cards', JSON.stringify(cards));
+      const raw = localStorage.getItem('copyai_layouts');
+      if (raw) return JSON.parse(raw) as LayoutEntry[];
     } catch {}
+    return [];
+  });
+  const [showLibrary, setShowLibrary] = useState(false);
+
+  // Persist page cards + layouts
+  useEffect(() => {
+    try { localStorage.setItem('copyai_cards', JSON.stringify(cards)); } catch {}
   }, [cards]);
+  useEffect(() => {
+    try { localStorage.setItem('copyai_layouts', JSON.stringify(layouts)); } catch {}
+  }, [layouts]);
 
   // ---------------- Utilities ----------------
   function toast(msg: string, ms = 1200) {
@@ -71,7 +92,21 @@ export default function Page() {
     }
   }
 
-  // ---------------- Actions ----------------
+  // Create a unique title by chaining "-2" until it’s unique within the library
+  function nextUniqueTitle(base: string): string {
+    const titles = new Set(layouts.map(l => l.title));
+    let t = (base.trim() || 'Untitled');
+    while (titles.has(t)) t = t + '-2';
+    return t;
+  }
+
+  // Format timestamp for display
+  function fmt(ts: number) {
+    const d = new Date(ts);
+    return d.toLocaleString();
+  }
+
+  // ---------------- Page actions: Add / Edit / Delete cards ----------------
   function addCard() {
     const t = title.trim();
     const x = text.trim();
@@ -81,11 +116,11 @@ export default function Page() {
     }
     const id = 'c' + Date.now();
     const newCard: Card = { id, title: t || 'Untitled', text: x, createdAt: Date.now() };
-    // Add to TOP
+    // Append to bottom (your preference)
     setCards(prev => [...prev, newCard]);
     setTitle('');
     setText('');
-    toast('➕ Added');
+    toast('➕ Added (to bottom)');
   }
 
   function startEdit(id: string) {
@@ -118,7 +153,43 @@ export default function Page() {
     toast('🗑 Deleted');
   }
 
-  // ---------------- Import/Export ----------------
+  // ---------------- Layout actions: Save / Open / Delete ----------------
+  function saveLayout() {
+    if (cards.length === 0) {
+      toast('Nothing to save (no prompts yet)');
+      return;
+    }
+    const base = prompt('Layout title:', currentLayoutTitle || '') ?? '';
+    const uniqueTitle = nextUniqueTitle(base);
+    const entry: LayoutEntry = {
+      id: 'L' + Date.now(),
+      title: uniqueTitle,
+      savedAt: Date.now(),
+      cards
+    };
+    setLayouts(prev => [...prev, entry]);
+    setCurrentLayoutTitle(uniqueTitle);
+    toast(`💾 Saved layout: ${uniqueTitle}`);
+  }
+
+  function openLayout(id: string) {
+    const lay = layouts.find(l => l.id === id);
+    if (!lay) return;
+    setCards(lay.cards);
+    setCurrentLayoutTitle(lay.title);
+    setShowLibrary(false);
+    toast(`📂 Opened: ${lay.title}`);
+  }
+
+  function deleteLayout(id: string) {
+    const lay = layouts.find(l => l.id === id);
+    if (!lay) return;
+    if (!confirm(`Delete layout?\n\n${lay.title}`)) return;
+    setLayouts(prev => prev.filter(l => l.id !== id));
+    toast('🗑 Layout deleted');
+  }
+
+  // ---------------- Import/Export (optional) ----------------
   function exportJSON() {
     const blob = new Blob([JSON.stringify({ cards }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -140,8 +211,8 @@ export default function Page() {
         text: String(c.text ?? ''),
         createdAt: Number.isFinite(+c.createdAt) ? +c.createdAt : Date.now() - i
       }));
-      // Keep newest first
-      norm.sort((a, b) => b.createdAt - a.createdAt);
+      // Keep existing behavior: oldest at top, newest at bottom
+      norm.sort((a, b) => a.createdAt - b.createdAt);
       setCards(norm);
       toast('📥 Imported');
     }).catch(() => alert('Failed to read file'));
@@ -153,14 +224,34 @@ export default function Page() {
       style={{
         minHeight: '100svh',
         padding: 12,
-        overflowX: 'hidden' // only vertical scrolling
+        overflowX: 'hidden' // vertical scroll only
       }}
     >
       {/* Header / Controls */}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 18 }}>CopyAI (Web)</div>
+        <div style={{ fontWeight: 700, fontSize: 18 }}>
+          CopyAI (Web){currentLayoutTitle ? ` — ${currentLayoutTitle}` : ''}
+        </div>
 
-        <button onClick={exportJSON} style={{ marginLeft: 8, background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}>
+        {/* Save + Library */}
+        <button
+          onClick={saveLayout}
+          style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}
+          title="Save current list as a layout in the Library"
+        >
+          💾 Save Layout
+        </button>
+
+        <button
+          onClick={() => setShowLibrary(true)}
+          style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}
+          title="Open Library"
+        >
+          📚 Library
+        </button>
+
+        {/* (Optional) Export / Import */}
+        <button onClick={exportJSON} style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}>
           Export
         </button>
 
@@ -223,20 +314,13 @@ export default function Page() {
 
         <div>
           <button onClick={addCard} style={{ background: ACCENT, color: '#fff', padding: '10px 14px', borderRadius: 8 }}>
-            ➕ Add
+            ➕ Add (goes to bottom)
           </button>
         </div>
       </div>
 
-      {/* Vertical List (newest first) */}
-      <div
-        style={{
-          display: 'grid',
-          gap: 12,
-          // Vertical-only scroll behavior; cards take full width and wrap content
-          overflowX: 'hidden'
-        }}
-      >
+      {/* Vertical List (oldest first, newest last) */}
+      <div style={{ display: 'grid', gap: 12, overflowX: 'hidden' }}>
         {cards.length === 0 && (
           <div style={{ opacity: .7, textAlign: 'center' }}>(No prompts yet — add one above)</div>
         )}
@@ -247,9 +331,7 @@ export default function Page() {
             <div
               key={c.id}
               onClick={(e) => {
-                // When editing, do not copy
                 if (isEditing) return;
-                // Avoid copying if clicking on an action button
                 if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
                 copyNow(c.text);
               }}
@@ -319,6 +401,64 @@ export default function Page() {
           );
         })}
       </div>
+
+      {/* Library Modal */}
+      {showLibrary && (
+        <div
+          onClick={() => setShowLibrary(false)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
+            display: 'grid', placeItems: 'center', zIndex: 10000
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 12,
+              width: 'min(720px, 92vw)', maxHeight: '80vh', overflow: 'auto', padding: 16
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <div style={{ fontWeight: 700, fontSize: 16 }}>Layout Library</div>
+              <button onClick={() => setShowLibrary(false)} style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}>Close</button>
+            </div>
+
+            {layouts.length === 0 && <div style={{ opacity: .7 }}>(Library is empty)</div>}
+
+            <div style={{ display: 'grid', gap: 8 }}>
+              {layouts.map(l => (
+                <div
+                  key={l.id}
+                  style={{
+                    display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between',
+                    padding: '8px 0', borderBottom: `1px solid ${BORDER}`
+                  }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{l.title}</div>
+                    <div style={{ opacity: .6, fontSize: 12 }}>Saved: {fmt(l.savedAt)}</div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={() => openLayout(l.id)}
+                      style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
+                    >
+                      Open
+                    </button>
+                    <button
+                      onClick={() => deleteLayout(l.id)}
+                      style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }
