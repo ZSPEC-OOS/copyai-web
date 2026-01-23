@@ -618,7 +618,14 @@ export default function Page() {
       >
         {/* Logo + App Name (CopyAI visible) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          /copyai_logo.png
+          <Image
+            src="/copyai_logo.png"
+            alt="CopyAI logo"
+            width={22}
+            height={22}
+            priority
+            style={{ display: 'block' }}
+          />
           <div style={{ fontWeight: 700, fontSize: 20 }}>
             CopyAI
           </div>
