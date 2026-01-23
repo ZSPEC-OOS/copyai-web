@@ -572,14 +572,17 @@ export default function Page() {
 
   // ----------- Render -----------
   return (
-    <div
-      data-app-container
-      style={{
-        minHeight: '100dvh',
-        padding: 12,
-        overflowX: 'hidden' // vertical scroll only
-      }}
-    >
+    
+<div
+  data-app-container
+  style={{
+    minHeight: '100dvh',
+    padding: 12,
+    paddingTop: 'calc(12px + env(safe-area-inset-top))',
+    overflowX: 'hidden' // vertical scroll only
+  }}
+>
+
       {/* Header / Controls */}
       <div
         data-header
@@ -1236,6 +1239,11 @@ export default function Page() {
         [data-app-container] {
           overflow-x: hidden;
         }
+
+/* Keep top content clear of iOS URL bar on scroll/jumps */
+[data-app-container] {
+  scroll-padding-top: 16px;
+}
 
         /* Buttons */
         .btn {
