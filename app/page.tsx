@@ -48,21 +48,6 @@ const ACCENT = 'var(--accent)';
 // Shared font size for modal header buttons
 const BUTTON_FONT_SIZE = 14;
 
-// Uniform style so label-based "buttons" match actual <button> elements
-const LIB_BTN_STYLE: React.CSSProperties = {
-  background: PANEL,
-  color: TEXT,
-  padding: '6px 10px',
-  borderRadius: 8,
-  border: `1px solid ${BORDER}`,
-  fontSize: BUTTON_FONT_SIZE,
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  lineHeight: 1.2,
-  cursor: 'pointer'
-};
-
 export default function Page() {
   // ----------- State: cards on the page -----------
   const [cards, setCards] = useState<Card[]>(() => {
@@ -113,14 +98,15 @@ export default function Page() {
   // Not persisted; resets on reload.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
-function toggleExpanded(id: string) {
-  setExpanded(prev => {
-    const next = new Set(prev);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    return next;
-  });
-}
+  // ✅ Missing function (fixes runtime error; enables "Show more/less")
+  function toggleExpanded(id: string) {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
 
   // Document Library: folders filter and preview
   type SpecialFolder = 'all' | 'unfiled';
@@ -572,30 +558,8 @@ function toggleExpanded(id: string) {
     return name;
   }
 
-  // ----------- Styles for preview clamping (3 lines) -----------
-  const LINE_HEIGHT = 1.4; // visual line-height multiplier
-  const PREVIEW_LINES = 3;
-  const PREVIEW_HEIGHT = `calc(${LINE_HEIGHT}em * ${PREVIEW_LINES})`;
-
-  // Collapsed preview: fixed height (equal for all), 3 lines visible, rest hidden
-  const previewCollapsedStyle: React.CSSProperties = {
-    whiteSpace: 'pre-line',
-    display: '-webkit-box',
-    WebkitLineClamp: PREVIEW_LINES as unknown as number,
-    WebkitBoxOrient: 'vertical' as unknown as 'vertical',
-    overflow: 'hidden',
-    lineHeight: LINE_HEIGHT as unknown as string,
-    height: PREVIEW_HEIGHT,
-    opacity: 1
-  };
-
-  // Expanded view: full text
-  const previewExpandedStyle: React.CSSProperties = {
-    whiteSpace: 'pre-wrap',
-    display: 'block',
-    overflow: 'visible',
-    lineHeight: LINE_HEIGHT as unknown as string
-  };
+  // ----------- Styles for preview clamping (handled via CSS classes) -----------
+  const LINE_HEIGHT = 1.4;
 
   // ----------- Memo: files filtered by activeFolder -----------
   const filteredFiles = useMemo(() => {
@@ -609,20 +573,23 @@ function toggleExpanded(id: string) {
   // ----------- Render -----------
   return (
     <div
+      data-app-container
       style={{
-        minHeight: '100svh',
+        minHeight: '100dvh',
         padding: 12,
         overflowX: 'hidden' // vertical scroll only
       }}
     >
       {/* Header / Controls */}
       <div
+        data-header
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 12,
           marginBottom: 16,
-          padding: '8px 4px'
+          padding: '8px 4px',
+          flexWrap: 'wrap'
         }}
       >
         {/* Logo + App Name (CopyAI visible) */}
@@ -644,21 +611,23 @@ function toggleExpanded(id: string) {
         <div style={{ marginLeft: 'auto' }} />
 
         {/* Primary actions aligned to the right */}
-        <button
-          onClick={saveLayout}
-          style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }}
-          title="Save current list as a layout in the Library"
-        >
-          💾 Save Layout
-        </button>
+        <div data-primary-actions style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={saveLayout}
+            className="btn btn-accent"
+            title="Save current list as a layout in the Library"
+          >
+            💾 Save Layout
+          </button>
 
-        <button
-          onClick={() => { setLibraryTab('layouts'); setShowLibrary(true); }}
-          style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }}
-          title="Open Library"
-        >
-          📚 Library
-        </button>
+          <button
+            onClick={() => { setLibraryTab('layouts'); setShowLibrary(true); }}
+            className="btn btn-panel"
+            title="Open Library"
+          >
+            📚 Library
+          </button>
+        </div>
       </div>
 
       {/* Add Form */}
@@ -706,7 +675,7 @@ function toggleExpanded(id: string) {
         <div>
           <button
             onClick={addCard}
-            style={{ background: ACCENT, color: '#fff', padding: '10px 14px', borderRadius: 8 }}
+            className="btn btn-accent"
           >
             ➕ Add (goes to bottom)
           </button>
@@ -769,11 +738,11 @@ function toggleExpanded(id: string) {
                       padding: 10
                     }}
                   />
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <button onClick={saveEdit} style={{ background: ACCENT, color: '#fff', padding: '8px 12px', borderRadius: 8 }} data-nocopy>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button onClick={saveEdit} className="btn btn-accent" data-nocopy>
                       Save
                     </button>
-                    <button onClick={cancelEdit} style={{ background: PANEL, color: TEXT, padding: '8px 12px', borderRadius: 8 }} data-nocopy>
+                    <button onClick={cancelEdit} className="btn btn-panel" data-nocopy>
                       Cancel
                     </button>
                   </div>
@@ -785,10 +754,8 @@ function toggleExpanded(id: string) {
                   {/* Text + bottom-right toggle container */}
                   <div style={{ position: 'relative' }}>
                     <div
-                      style={{
-                        ...(isExpanded ? previewExpandedStyle : previewCollapsedStyle),
-                        opacity: c.text ? 1 : .6
-                      }}
+                      className={isExpanded ? 'preview-expanded' : 'preview-collapsed'}
+                      style={{ opacity: c.text ? 1 : .6, lineHeight: LINE_HEIGHT as unknown as number }}
                     >
                       {c.text || '(empty)'}
                     </div>
@@ -802,17 +769,11 @@ function toggleExpanded(id: string) {
                         }}
                         aria-label={isExpanded ? 'Show less' : 'Show more'}
                         title={isExpanded ? 'Show less' : 'Show more'}
+                        className="btn btn-panel btn-mini"
                         style={{
                           position: 'absolute',
                           right: 0,
                           bottom: 0,
-                          background: PANEL,
-                          color: TEXT,
-                          border: `1px solid ${BORDER}`,
-                          borderRadius: 6,
-                          padding: '2px 8px',
-                          fontSize: 12,
-                          lineHeight: 1.4,
                           cursor: 'pointer'
                         }}
                       >
@@ -822,11 +783,11 @@ function toggleExpanded(id: string) {
                   </div>
 
                   {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-                    <button onClick={() => startEdit(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                    <button onClick={() => startEdit(c.id)} className="btn btn-panel" data-nocopy>
                       Edit
                     </button>
-                    <button onClick={() => removeCard(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
+                    <button onClick={() => removeCard(c.id)} className="btn btn-panel" data-nocopy>
                       Delete
                     </button>
                   </div>
@@ -840,6 +801,7 @@ function toggleExpanded(id: string) {
       {/* Library Modal (Layouts + Document Library) */}
       {showLibrary && (
         <div
+          data-library-modal
           onClick={() => setShowLibrary(false)}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
@@ -847,6 +809,7 @@ function toggleExpanded(id: string) {
           }}
         >
           <div
+            data-modal-panel
             onClick={(e) => e.stopPropagation()}
             style={{
               background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 12,
@@ -855,6 +818,7 @@ function toggleExpanded(id: string) {
           >
             {/* Modal Toolbar */}
             <div
+              data-modal-toolbar
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -866,10 +830,10 @@ function toggleExpanded(id: string) {
               }}
             >
               {/* Left cluster (varies by tab) */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div data-toolbar-left style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
                 {libraryTab === 'layouts' ? (
                   <>
-                    <label style={LIB_BTN_STYLE} title="Import a layout (JSON file with cards)">
+                    <label className="btn btn-panel btn-small" title="Import a layout (JSON file with cards)">
                       Import Layout From File
                       <input
                         type="file"
@@ -881,13 +845,13 @@ function toggleExpanded(id: string) {
 
                     <button
                       onClick={exportJSON}
-                      style={LIB_BTN_STYLE}
+                      className="btn btn-panel btn-small"
                       title="Export current layout as JSON"
                     >
                       Export Current Layout
                     </button>
 
-                    <label style={LIB_BTN_STYLE} title="Import a saved library (JSON with layouts)">
+                    <label className="btn btn-panel btn-small" title="Import a saved library (JSON with layouts)">
                       Import Library From File
                       <input
                         type="file"
@@ -899,7 +863,7 @@ function toggleExpanded(id: string) {
 
                     <button
                       onClick={exportLibrary}
-                      style={LIB_BTN_STYLE}
+                      className="btn btn-panel btn-small"
                       title="Export all saved layouts as JSON"
                     >
                       Export Library
@@ -907,7 +871,7 @@ function toggleExpanded(id: string) {
                   </>
                 ) : (
                   <>
-                    <label style={LIB_BTN_STYLE} title="Upload .txt file(s) into the current folder">
+                    <label className="btn btn-panel btn-small" title="Upload .txt file(s) into the current folder">
                       Upload .txt Files
                       <input
                         type="file"
@@ -920,13 +884,13 @@ function toggleExpanded(id: string) {
 
                     <button
                       onClick={createFolder}
-                      style={LIB_BTN_STYLE}
+                      className="btn btn-panel btn-small"
                       title="Create a new folder"
                     >
                       New Folder
                     </button>
 
-                    <label style={LIB_BTN_STYLE} title="Import a Document Library JSON (folders and files)">
+                    <label className="btn btn-panel btn-small" title="Import a Document Library JSON (folders and files)">
                       Import Doc Library
                       <input
                         type="file"
@@ -938,7 +902,7 @@ function toggleExpanded(id: string) {
 
                     <button
                       onClick={exportDocLibrary}
-                      style={LIB_BTN_STYLE}
+                      className="btn btn-panel btn-small"
                       title="Export all folders and files as JSON"
                     >
                       Export Doc Library
@@ -948,34 +912,22 @@ function toggleExpanded(id: string) {
               </div>
 
               {/* Right cluster: Document Library (or Layouts) switcher + Close */}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
+              <div data-toolbar-right style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto', flexWrap: 'wrap' }}>
                 {libraryTab === 'layouts' ? (
                   <button
                     onClick={() => setLibraryTab('docs')}
-                    style={{
-                      background: PANEL,
-                      color: TEXT,
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      border: `1px solid ${BORDER}`,
-                      fontSize: BUTTON_FONT_SIZE
-                    }}
+                    className="btn btn-panel btn-small"
                     title="Open the Document Library"
+                    style={{ fontSize: BUTTON_FONT_SIZE }}
                   >
                     📄 Document Library
                   </button>
                 ) : (
                   <button
                     onClick={() => setLibraryTab('layouts')}
-                    style={{
-                      background: PANEL,
-                      color: TEXT,
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      border: `1px solid ${BORDER}`,
-                      fontSize: BUTTON_FONT_SIZE
-                    }}
+                    className="btn btn-panel btn-small"
                     title="Back to Layouts Library"
+                    style={{ fontSize: BUTTON_FONT_SIZE }}
                   >
                     📚 Layouts
                   </button>
@@ -983,13 +935,8 @@ function toggleExpanded(id: string) {
 
                 <button
                   onClick={() => setShowLibrary(false)}
-                  style={{
-                    background: ACCENT,
-                    color: '#fff',
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    fontSize: BUTTON_FONT_SIZE
-                  }}
+                  className="btn btn-accent btn-small"
+                  style={{ fontSize: BUTTON_FONT_SIZE }}
                 >
                   Close
                 </button>
@@ -1007,23 +954,23 @@ function toggleExpanded(id: string) {
                       key={l.id}
                       style={{
                         display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between',
-                        padding: '8px 0', borderBottom: `1px solid ${BORDER}`
+                        padding: '8px 0', borderBottom: `1px solid ${BORDER}`, flexWrap: 'wrap'
                       }}
                     >
                       <div>
                         <div style={{ fontWeight: 600 }}>{l.title}</div>
                         <div style={{ opacity: .6, fontSize: 12 }}>Saved: {fmt(l.savedAt)}</div>
                       </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <button
                           onClick={() => openLayout(l.id)}
-                          style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
+                          className="btn btn-accent btn-small"
                         >
                           Open
                         </button>
                         <button
                           onClick={() => deleteLayout(l.id)}
-                          style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
+                          className="btn btn-panel btn-small"
                         >
                           Delete
                         </button>
@@ -1034,7 +981,7 @@ function toggleExpanded(id: string) {
               </>
             ) : (
               // ----------- Document Library UI -----------
-              <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 12, minHeight: 300 }}>
+              <div data-docs-grid style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 12, minHeight: 300 }}>
                 {/* Sidebar: Folders */}
                 <div
                   style={{
@@ -1052,26 +999,22 @@ function toggleExpanded(id: string) {
                   {/* Special filters */}
                   <button
                     onClick={() => setActiveFolder('all')}
+                    className="btn btn-panel"
                     style={{
                       textAlign: 'left',
                       background: activeFolder === 'all' ? ACCENT : PANEL,
-                      color: activeFolder === 'all' ? '#fff' : TEXT,
-                      padding: '6px 8px',
-                      borderRadius: 8,
-                      border: `1px solid ${BORDER}`
+                      color: activeFolder === 'all' ? '#fff' : TEXT
                     }}
                   >
                     📁 All
                   </button>
                   <button
                     onClick={() => setActiveFolder('unfiled')}
+                    className="btn btn-panel"
                     style={{
                       textAlign: 'left',
                       background: activeFolder === 'unfiled' ? ACCENT : PANEL,
-                      color: activeFolder === 'unfiled' ? '#fff' : TEXT,
-                      padding: '6px 8px',
-                      borderRadius: 8,
-                      border: `1px solid ${BORDER}`
+                      color: activeFolder === 'unfiled' ? '#fff' : TEXT
                     }}
                   >
                     🗂 Unfiled
@@ -1094,32 +1037,25 @@ function toggleExpanded(id: string) {
                         background: activeFolder === folder.id ? 'rgba(0,0,0,0.04)' : 'transparent'
                       }}
                     >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                         <button
                           onClick={() => setActiveFolder(folder.id)}
-                          style={{
-                            textAlign: 'left',
-                            background: PANEL,
-                            color: TEXT,
-                            padding: '6px 8px',
-                            borderRadius: 8,
-                            border: `1px solid ${BORDER}`,
-                            flex: 1
-                          }}
+                          className="btn btn-panel"
+                          style={{ textAlign: 'left', flex: 1 }}
                           title="Open folder"
                         >
                           📁 {folder.name}
                         </button>
                         <button
                           onClick={() => renameFolder(folder.id)}
-                          style={{ background: PANEL, color: TEXT, padding: '6px 8px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                          className="btn btn-panel btn-square"
                           title="Rename folder"
                         >
                           ✏️
                         </button>
                         <button
                           onClick={() => deleteFolder(folder.id)}
-                          style={{ background: PANEL, color: TEXT, padding: '6px 8px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                          className="btn btn-panel btn-square"
                           title="Delete folder"
                         >
                           🗑
@@ -1141,7 +1077,7 @@ function toggleExpanded(id: string) {
                     gap: 8
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                     <div style={{ fontWeight: 700 }}>
                       {activeFolder === 'all' ? 'All Documents'
                         : activeFolder === 'unfiled' ? 'Unfiled Documents'
@@ -1149,7 +1085,7 @@ function toggleExpanded(id: string) {
                     </div>
 
                     {/* Quick upload into current context */}
-                    <label style={{ ...LIB_BTN_STYLE, padding: '4px 8px' }} title="Upload .txt into this view">
+                    <label className="btn btn-panel btn-small" title="Upload .txt into this view">
                       Upload here
                       <input
                         type="file"
@@ -1168,6 +1104,7 @@ function toggleExpanded(id: string) {
                       {filteredFiles.map(file => (
                         <div
                           key={file.id}
+                          data-file-row
                           style={{
                             display: 'grid',
                             gridTemplateColumns: '1fr auto',
@@ -1180,17 +1117,17 @@ function toggleExpanded(id: string) {
                         >
                           {/* Name + meta */}
                           <div>
-                            <div style={{ fontWeight: 600 }}>{file.name}</div>
+                            <div style={{ fontWeight: 600, wordBreak: 'break-word' }}>{file.name}</div>
                             <div style={{ opacity: .6, fontSize: 12 }}>
                               Created: {fmt(file.createdAt)} &nbsp;•&nbsp; Updated: {fmt(file.updatedAt)}
                             </div>
                           </div>
 
                           {/* Actions */}
-                          <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                          <div data-file-actions style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                             <button
                               onClick={() => setPreviewDocId(file.id)}
-                              style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                              className="btn btn-panel btn-small"
                               title="Open / Preview"
                             >
                               Open
@@ -1204,9 +1141,7 @@ function toggleExpanded(id: string) {
                                 if (val === 'unfiled') moveFile(file.id, 'unfiled');
                                 else moveFile(file.id, val);
                               }}
-                              style={{
-                                background: PANEL, color: TEXT, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '6px 8px'
-                              }}
+                              className="select"
                               title="Move to folder"
                             >
                               <option value="unfiled">Unfiled</option>
@@ -1217,14 +1152,14 @@ function toggleExpanded(id: string) {
 
                             <button
                               onClick={() => renameFile(file.id)}
-                              style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                              className="btn btn-panel btn-small"
                               title="Rename file"
                             >
                               Rename
                             </button>
                             <button
                               onClick={() => deleteFile(file.id)}
-                              style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                              className="btn btn-panel btn-small"
                               title="Delete file"
                             >
                               Delete
@@ -1256,20 +1191,20 @@ function toggleExpanded(id: string) {
                   width: 'min(720px, 92vw)', maxHeight: '70vh', overflow: 'auto', padding: 16, display: 'grid', gap: 10
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontWeight: 700 }}>{previewDoc.name}</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                  <div style={{ fontWeight: 700, wordBreak: 'break-word' }}>{previewDoc.name}</div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button
                       onClick={() => {
                         copyNow(previewDoc.content);
                       }}
-                      style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                      className="btn btn-panel btn-small"
                     >
                       Copy
                     </button>
                     <button
                       onClick={() => setPreviewDocId(null)}
-                      style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
+                      className="btn btn-accent btn-small"
                     >
                       Close
                     </button>
@@ -1294,6 +1229,143 @@ function toggleExpanded(id: string) {
           )}
         </div>
       )}
+
+      {/* Responsive + utility CSS (styled-jsx) */}
+      <style jsx>{`
+        /* Reset horizontal overflow globally within this component scope */
+        [data-app-container] {
+          overflow-x: hidden;
+        }
+
+        /* Buttons */
+        .btn {
+          background: ${PANEL};
+          color: ${TEXT};
+          padding: 8px 12px;
+          border-radius: 8px;
+          border: 1px solid ${BORDER};
+          font-size: 14px;
+          line-height: 1.2;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          text-decoration: none;
+          max-width: 100%;
+        }
+        .btn-small { padding: 6px 10px; font-size: ${BUTTON_FONT_SIZE}px; }
+        .btn-mini { padding: 2px 8px; font-size: 12px; line-height: 1.4; border-radius: 6px; }
+        .btn-accent { background: ${ACCENT}; color: #fff; border-color: ${ACCENT}; }
+        .btn-panel { background: ${PANEL}; color: ${TEXT}; }
+        .btn-square { width: 36px; min-width: 36px; height: 36px; padding: 0; }
+
+        .select {
+          background: ${PANEL};
+          color: ${TEXT};
+          border: 1px solid ${BORDER};
+          border-radius: 8px;
+          padding: 6px 8px;
+          max-width: 100%;
+        }
+
+        /* Multiline clamp (collapsed) */
+        .preview-collapsed {
+          white-space: pre-line;
+          display: -webkit-box;
+          -webkit-line-clamp: 3;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          height: calc(1.4em * 3);
+        }
+
+        /* Expanded text */
+        .preview-expanded {
+          white-space: pre-wrap;
+          display: block;
+          overflow: visible;
+        }
+
+        /* Modal responsiveness */
+        [data-modal-panel] {
+          max-width: 94vw;
+        }
+
+        /* Document Library grid responsive */
+        [data-docs-grid] {
+          grid-template-columns: 240px 1fr;
+        }
+
+        /* File row responsive grid */
+        [data-file-row] {
+          grid-template-columns: 1fr auto;
+        }
+
+        /* Toolbar items wrapping */
+        [data-modal-toolbar] {
+          width: 100%;
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+          [data-header] {
+            gap: 8px;
+          }
+
+          [data-primary-actions] > * {
+            flex: 1 1 calc(50% - 8px);
+          }
+
+          /* Full-screen modal on mobile */
+          [data-library-modal] {
+            align-items: flex-end;
+          }
+          [data-modal-panel] {
+            width: 100vw !important;
+            max-width: 100vw !important;
+            height: 100dvh;
+            max-height: 100dvh;
+            border-radius: 0;
+            padding: 12px;
+          }
+
+          /* Toolbar stacks and items fill width */
+          [data-toolbar-left],
+          [data-toolbar-right] {
+            width: 100%;
+          }
+          [datas-grid] {
+            grid-template-columns: 1fr !important;
+          }
+
+          /* File row: stack name and actions vertically */
+          [data-file-row] {
+            grid-template-columns: 1fr !important;
+          }
+          [data-file-actions] {
+            justify-content: stretch !important;
+          }
+          [data-file-actions] > * {
+            flex: 1 1 100%;
+          }
+
+          .select {
+            width: 100%;
+          }
+
+          .btn-square {
+            width: 36px;
+            height: 36px;
+          }
+        }
+
+        /* Very small screens */
+        @media (max-width: 420px) {
+          [data-primary-actions] > * {
+            flex: 1 1 100%;
+          }
+        }
+      `}</style>
     </div>
   );
 }
