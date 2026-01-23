@@ -681,7 +681,7 @@ export default function Page() {
               maxHeight: '80vh',
               // Scroll stays inside rounded container:
               overflow: 'auto',
-              padding: 16,
+              padding: '16px 14px 16px',
               boxSizing: 'border-box',
               maxWidth: '92vw',
               // Clip to preserve rounded corners at all times
@@ -769,35 +769,56 @@ export default function Page() {
             {layouts.length === 0 && <div style={{ opacity: .7 }}>(Library is empty)</div>}
 
             <div style={{ display: 'grid', gap: 8 }}>
-              {layouts.map(l => (
-                <div
-                  key={l.id}
-                  style={{
-                    display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between',
-                    padding: '8px 0', borderBottom: `1px solid ${BORDER}`,
-                    boxSizing: 'border-box', maxWidth: '100%'
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60vw' }}>{l.title}</div>
-                    <div style={{ opacity: .6, fontSize: 12 }}>Saved: {fmt(l.savedAt)}</div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    <button
-                      onClick={() => openLayout(l.id)}
-                      style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
-                    >
-                      Open
-                    </button>
-                    <button
-                      onClick={() => deleteLayout(l.id)}
-                      style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+   
+{layouts.map(l => (
+  <div
+    key={l.id}
+    style={{
+      display: 'flex',
+      alignItems: 'center',
+      padding: '10px 12px',               // inset so buttons don't touch the rounded edge
+      borderBottom: `1px solid ${BORDER}`,
+      borderRadius: 8,                    // optional: softens row corners visually
+      boxSizing: 'border-box',
+      width: '100%',
+      gap: 8,
+      overflow: 'hidden'                  // prevents accidental horizontal overflow within row
+    }}
+  >
+    {/* Left block: title + timestamp (flexible, shrinks as needed) */}
+    <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+      <div
+        style={{
+          fontWeight: 600,
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}
+        title={l.title}
+      >
+        {l.title}
+      </div>
+      <div style={{ opacity: .6, fontSize: 12 }}>Saved: {fmt(l.savedAt)}</div>
+    </div>
+
+    {/* Right block: buttons (fixed width) */}
+    <div style={{ display: 'flex', gap: 8, flex: '0 0 auto' }}>
+      <button
+        onClick={() => openLayout(l.id)}
+        style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
+      >
+        Open
+      </button>
+      <button
+        onClick={() => deleteLayout(l.id)}
+        style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+      >
+        Delete
+      </button>
+    </div>
+  </div>
+))}
+
             </div>
 
           </div>
