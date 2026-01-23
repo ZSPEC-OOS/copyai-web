@@ -618,14 +618,7 @@ export default function Page() {
       >
         {/* Logo + App Name (CopyAI visible) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Image
-            src="/copyai_logo.png"
-            alt="CopyAI logo"
-            width={22}
-            height={22}
-            priority
-            style={{ display: 'block' }}
-          />
+          /copyai_logo.png
           <div style={{ fontWeight: 700, fontSize: 20 }}>
             CopyAI
           </div>
@@ -1203,7 +1196,9 @@ export default function Page() {
                             </select>
 
                             <button
-                              onClick={() =>                 title="Rename file"
+                              onClick={() => renameFile(file.id)}
+                              style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                              title="Rename file"
                             >
                               Rename
                             </button>
