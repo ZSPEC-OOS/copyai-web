@@ -1330,6 +1330,18 @@ export default function Page() {
             flex: 1 1 calc(50% - 8px);
           }
 
+/* Restore original homepage header button widths/sizing */
+[data-primary-actions] > * {
+  flex: 0 0 auto !important; /* keep natural width; no 50% columns */
+}
+
+[data-primary-actions] .btn,
+[data-primary-actions] .btn-small {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+}
+
           /* Full-screen modal on mobile */
           [data-library-modal] {
             align-items: flex-end;
