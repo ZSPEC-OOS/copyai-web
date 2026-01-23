@@ -213,9 +213,21 @@ export default function Page() {
   function exportJSON() {
     const blob = new Blob([JSON.stringify({ cards }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
+    const url = URL.createObjectURL(blob);
+    a.href = url;
     a.download = 'prompts.json';
     a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportLibrary() {
+    const blob = new Blob([JSON.stringify({ layouts }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    a.href = url;
+    a.download = 'library.json';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function importJSON(file: File) {
@@ -248,8 +260,8 @@ export default function Page() {
   const previewCollapsedStyle: React.CSSProperties = {
     whiteSpace: 'pre-line',             // keep line breaks; allow wrapping
     display: '-webkit-box',
-    WebkitLineClamp: PREVIEW_LINES as any,
-    WebkitBoxOrient: 'vertical' as any,
+    WebkitLineClamp: PREVIEW_LINES as unknown as number,
+    WebkitBoxOrient: 'vertical' as unknown as 'vertical',
     overflow: 'hidden',
     lineHeight: LINE_HEIGHT as unknown as string, // ensure consistent box height
     height: PREVIEW_HEIGHT,             // lock the preview box height
@@ -519,13 +531,15 @@ export default function Page() {
                 alignItems: 'center',
                 gap: 8,
                 justifyContent: 'space-between',
-                marginBottom: 10
+                marginBottom: 10,
+                flexWrap: 'wrap',
+                rowGap: 8
               }}
             >
-              {/* No modal title */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {/* Left cluster: Import / Export Current Layout / Export Library */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <label
-                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}
+                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${BORDER}` }}
                   title="Import a layout (JSON file with cards)"
                 >
                   Import Layout From File
@@ -539,13 +553,22 @@ export default function Page() {
 
                 <button
                   onClick={exportJSON}
-                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }}
+                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
                   title="Export current layout as JSON"
                 >
                   Export Current Layout
                 </button>
+
+                <button
+                  onClick={exportLibrary}
+                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                  title="Export all saved layouts as JSON"
+                >
+                  Export Library
+                </button>
               </div>
 
+              {/* Right: Close */}
               <button
                 onClick={() => setShowLibrary(false)}
                 style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
