@@ -664,7 +664,6 @@ export default function Page() {
           marginBottom: 16
         }}
       >
-        {/* No section title */}
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -722,7 +721,6 @@ export default function Page() {
               onClick={(e) => {
                 if (isEditing) return;
                 if ((e.target as HTMLElement).closest('[data-nocopy]')) return;
-                // Copy full text on card click (primary behavior)
                 copyNow(c.text);
               }}
               style={{
@@ -790,7 +788,7 @@ export default function Page() {
                       <button
                         data-nocopy
                         onClick={(e) => {
-                          e.stopPropagation(); // do not copy text when toggling
+                          e.stopPropagation();
                           toggleExpanded(c.id);
                         }}
                         aria-label={isExpanded ? 'Show less' : 'Show more'}
@@ -862,7 +860,6 @@ export default function Page() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 {libraryTab === 'layouts' ? (
                   <>
-                    {/* Import current layout (cards) */}
                     <label style={LIB_BTN_STYLE} title="Import a layout (JSON file with cards)">
                       Import Layout From File
                       <input
@@ -873,7 +870,6 @@ export default function Page() {
                       />
                     </label>
 
-                    {/* Export current layout (cards) */}
                     <button
                       onClick={exportJSON}
                       style={LIB_BTN_STYLE}
@@ -882,7 +878,6 @@ export default function Page() {
                       Export Current Layout
                     </button>
 
-                    {/* Import Library (layouts) */}
                     <label style={LIB_BTN_STYLE} title="Import a saved library (JSON with layouts)">
                       Import Library From File
                       <input
@@ -893,7 +888,6 @@ export default function Page() {
                       />
                     </label>
 
-                    {/* Export Library (layouts) */}
                     <button
                       onClick={exportLibrary}
                       style={LIB_BTN_STYLE}
@@ -904,7 +898,6 @@ export default function Page() {
                   </>
                 ) : (
                   <>
-                    {/* Upload .txt files */}
                     <label style={LIB_BTN_STYLE} title="Upload .txt file(s) into the current folder">
                       Upload .txt Files
                       <input
@@ -916,7 +909,6 @@ export default function Page() {
                       />
                     </label>
 
-                    {/* New Folder */}
                     <button
                       onClick={createFolder}
                       style={LIB_BTN_STYLE}
@@ -925,7 +917,6 @@ export default function Page() {
                       New Folder
                     </button>
 
-                    {/* Import Document Library */}
                     <label style={LIB_BTN_STYLE} title="Import a Document Library JSON (folders and files)">
                       Import Doc Library
                       <input
@@ -936,7 +927,6 @@ export default function Page() {
                       />
                     </label>
 
-                    {/* Export Document Library */}
                     <button
                       onClick={exportDocLibrary}
                       style={LIB_BTN_STYLE}
@@ -948,12 +938,19 @@ export default function Page() {
                 )}
               </div>
 
-              {/* Right cluster: toggle tab + Close */}
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              {/* Right cluster: Document Library (or Layouts) switcher + Close */}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
                 {libraryTab === 'layouts' ? (
                   <button
                     onClick={() => setLibraryTab('docs')}
-                    style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}`, fontSize: BUTTON_FONT_SIZE }}
+                    style={{
+                      background: PANEL,
+                      color: TEXT,
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      border: `1px solid ${BORDER}`,
+                      fontSize: BUTTON_FONT_SIZE
+                    }}
                     title="Open the Document Library"
                   >
                     📄 Document Library
@@ -961,7 +958,14 @@ export default function Page() {
                 ) : (
                   <button
                     onClick={() => setLibraryTab('layouts')}
-                    style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}`, fontSize: BUTTON_FONT_SIZE }}
+                    style={{
+                      background: PANEL,
+                      color: TEXT,
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      border: `1px solid ${BORDER}`,
+                      fontSize: BUTTON_FONT_SIZE
+                    }}
                     title="Back to Layouts Library"
                   >
                     📚 Layouts
@@ -1271,7 +1275,7 @@ export default function Page() {
                     borderRadius: 8,
                     padding: 12,
                     color: TEXT,
-                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace'
+                    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace'
                   }}
                 >
 {previewDoc.content}
