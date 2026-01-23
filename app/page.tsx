@@ -39,7 +39,12 @@ const LIB_BTN_STYLE: React.CSSProperties = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  lineHeight: 1.2
+  lineHeight: 1.2,
+  boxSizing: 'border-box',
+  maxWidth: '100%',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap'
 };
 
 export default function Page() {
@@ -108,7 +113,12 @@ export default function Page() {
       border: `1px solid ${BORDER}`,
       borderRadius: '8px',
       padding: '10px 12px',
-      zIndex: '9999'
+      zIndex: '9999',
+      boxSizing: 'border-box',
+      maxWidth: 'calc(100vw - 24px)',
+      overflow: 'hidden',
+      whiteSpace: 'nowrap',
+      textOverflow: 'ellipsis'
     } as CSSStyleDeclaration);
     document.body.appendChild(el);
     setTimeout(() => el.remove(), ms);
@@ -343,7 +353,11 @@ export default function Page() {
     overflow: 'hidden',
     lineHeight: LINE_HEIGHT as unknown as string,
     height: PREVIEW_HEIGHT,
-    opacity: 1
+    opacity: 1,
+    boxSizing: 'border-box',
+    maxWidth: '100%',
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word'
   };
 
   // Expanded view: full text
@@ -351,7 +365,11 @@ export default function Page() {
     whiteSpace: 'pre-wrap',
     display: 'block',
     overflow: 'visible',
-    lineHeight: LINE_HEIGHT as unknown as string
+    lineHeight: LINE_HEIGHT as unknown as string,
+    boxSizing: 'border-box',
+    maxWidth: '100%',
+    overflowWrap: 'anywhere',
+    wordBreak: 'break-word'
   };
 
   // ----------- Render -----------
@@ -360,7 +378,9 @@ export default function Page() {
       style={{
         minHeight: '100svh',
         padding: 12,
-        overflowX: 'hidden' // vertical scroll only
+        overflowX: 'hidden', // vertical scroll only
+        boxSizing: 'border-box',
+        maxWidth: '100%',
       }}
     >
       {/* Header / Controls */}
@@ -370,7 +390,10 @@ export default function Page() {
           alignItems: 'center',
           gap: 12,
           marginBottom: 16,
-          padding: '8px 4px'
+          padding: '8px 4px',
+          boxSizing: 'border-box',
+          maxWidth: '100%',
+          overflow: 'hidden'
         }}
       >
         {/* Logo + App Name (CopyAI visible) */}
@@ -418,7 +441,10 @@ export default function Page() {
           padding: 16,
           display: 'grid',
           gap: 10,
-          marginBottom: 16
+          marginBottom: 16,
+          boxSizing: 'border-box',
+          maxWidth: '100%',
+          overflow: 'hidden' // ensures rounded corners are always respected
         }}
       >
         {/* No section title */}
@@ -432,7 +458,11 @@ export default function Page() {
             color: TEXT,
             border: `1px solid ${BORDER}`,
             borderRadius: 8,
-            padding: '10px'
+            padding: '10px',
+            boxSizing: 'border-box',
+            maxWidth: '100%',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word'
           }}
         />
 
@@ -448,7 +478,11 @@ export default function Page() {
             color: TEXT,
             border: `1px solid ${BORDER}`,
             borderRadius: 8,
-            padding: 10
+            padding: 10,
+            boxSizing: 'border-box',
+            maxWidth: '100%',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word'
           }}
         />
 
@@ -463,7 +497,7 @@ export default function Page() {
       </div>
 
       {/* Vertical List (oldest first, newest last) */}
-      <div style={{ display: 'grid', gap: 12, overflowX: 'hidden' }}>
+      <div style={{ display: 'grid', gap: 12, overflowX: 'hidden', boxSizing: 'border-box', maxWidth: '100%' }}>
         {cards.length === 0 && (
           <div style={{ opacity: .7, textAlign: 'center' }}>(No prompts yet — add one above)</div>
         )}
@@ -486,11 +520,15 @@ export default function Page() {
                 background: SURFACE,
                 border: `1px solid ${BORDER}`,
                 borderRadius: 12,
-                padding: 12
+                padding: 12,
+                boxSizing: 'border-box',
+                maxWidth: '100%',
+                // Critical: Clip children so rounded corners are always respected
+                overflow: 'hidden'
               }}
             >
               {isEditing ? (
-                <div style={{ display: 'grid', gap: 8 }}>
+                <div style={{ display: 'grid', gap: 8, boxSizing: 'border-box', maxWidth: '100%' }}>
                   <input
                     value={editTitle}
                     onChange={(e) => setEditTitle(e.target.value)}
@@ -501,7 +539,11 @@ export default function Page() {
                       color: TEXT,
                       border: `1px solid ${BORDER}`,
                       borderRadius: 8,
-                      padding: '8px 10px'
+                      padding: '8px 10px',
+                      boxSizing: 'border-box',
+                      maxWidth: '100%',
+                      overflowWrap: 'anywhere',
+                      wordBreak: 'break-word'
                     }}
                   />
                   <textarea
@@ -516,7 +558,11 @@ export default function Page() {
                       color: TEXT,
                       border: `1px solid ${BORDER}`,
                       borderRadius: 8,
-                      padding: 10
+                      padding: 10,
+                      boxSizing: 'border-box',
+                      maxWidth: '100%',
+                      overflowWrap: 'anywhere',
+                      wordBreak: 'break-word'
                     }}
                   />
                   <div style={{ display: 'flex', gap: 8 }}>
@@ -529,11 +575,32 @@ export default function Page() {
                   </div>
                 </div>
               ) : (
-                <div style={{ display: 'grid', gap: 6 }}>
-                  <div style={{ fontWeight: 700, fontSize: 16 }}>{c.title || 'Untitled'}</div>
+                <div style={{ display: 'grid', gap: 6, boxSizing: 'border-box', maxWidth: '100%' }}>
+                  <div
+                    style={{
+                      fontWeight: 700,
+                      fontSize: 16,
+                      boxSizing: 'border-box',
+                      maxWidth: '100%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}
+                    title={c.title || 'Untitled'}
+                  >
+                    {c.title || 'Untitled'}
+                  </div>
 
                   {/* Text + bottom-right toggle container */}
-                  <div style={{ position: 'relative' }}>
+                  <div
+                    style={{
+                      position: 'relative',
+                      boxSizing: 'border-box',
+                      maxWidth: '100%',
+                      // Ensure toggle never sits outside rounded clipping
+                      paddingBottom: showToggle ? 28 : 0
+                    }}
+                  >
                     <div
                       style={{
                         ...(isExpanded ? previewExpandedStyle : previewCollapsedStyle),
@@ -554,8 +621,8 @@ export default function Page() {
                         title={isExpanded ? 'Show less' : 'Show more'}
                         style={{
                           position: 'absolute',
-                          right: 0,
-                          bottom: 0,
+                          right: 8, // inset to keep away from the clipped edge
+                          bottom: 8, // inset to keep away from the clipped edge
                           background: PANEL,
                           color: TEXT,
                           border: `1px solid ${BORDER}`,
@@ -563,7 +630,12 @@ export default function Page() {
                           padding: '2px 8px',
                           fontSize: 12,
                           lineHeight: 1.4,
-                          cursor: 'pointer'
+                          cursor: 'pointer',
+                          maxWidth: 'calc(100% - 16px)',
+                          boxSizing: 'border-box',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
                         }}
                       >
                         {isExpanded ? 'Show less' : 'Show more'}
@@ -572,7 +644,7 @@ export default function Page() {
                   </div>
 
                   {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
                     <button onClick={() => startEdit(c.id)} style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8 }} data-nocopy>
                       Edit
                     </button>
@@ -593,14 +665,28 @@ export default function Page() {
           onClick={() => setShowLibrary(false)}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,.5)',
-            display: 'grid', placeItems: 'center', zIndex: 10000
+            display: 'grid', placeItems: 'center', zIndex: 10000,
+            boxSizing: 'border-box',
+            maxWidth: '100%',
+            overflow: 'hidden'
           }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: PANEL, border: `1px solid ${BORDER}`, borderRadius: 12,
-              width: 'min(720px, 92vw)', maxHeight: '80vh', overflow: 'auto', padding: 16
+              background: PANEL,
+              border: `1px solid ${BORDER}`,
+              borderRadius: 12,
+              width: 'min(720px, 92vw)',
+              maxHeight: '80vh',
+              // Scroll stays inside rounded container:
+              overflow: 'auto',
+              padding: 16,
+              boxSizing: 'border-box',
+              maxWidth: '92vw',
+              // Clip to preserve rounded corners at all times
+              overflowClipMargin: '0px', // harmless if unsupported
+              overflowX: 'hidden'
             }}
           >
             <div
@@ -611,11 +697,13 @@ export default function Page() {
                 justifyContent: 'space-between',
                 marginBottom: 10,
                 flexWrap: 'wrap',
-                rowGap: 8
+                rowGap: 8,
+                boxSizing: 'border-box',
+                maxWidth: '100%'
               }}
             >
               {/* Left cluster: Import / Export Current Layout / Import Library / Export Library */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', boxSizing: 'border-box', maxWidth: '100%' }}>
                 {/* Import current layout (cards) */}
                 <label
                   style={LIB_BTN_STYLE}
@@ -686,14 +774,15 @@ export default function Page() {
                   key={l.id}
                   style={{
                     display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'space-between',
-                    padding: '8px 0', borderBottom: `1px solid ${BORDER}`
+                    padding: '8px 0', borderBottom: `1px solid ${BORDER}`,
+                    boxSizing: 'border-box', maxWidth: '100%'
                   }}
                 >
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{l.title}</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '60vw' }}>{l.title}</div>
                     <div style={{ opacity: .6, fontSize: 12 }}>Saved: {fmt(l.savedAt)}</div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                     <button
                       onClick={() => openLayout(l.id)}
                       style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
@@ -717,4 +806,3 @@ export default function Page() {
     </div>
   );
 }
-``
