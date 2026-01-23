@@ -28,6 +28,20 @@ const ACCENT = 'var(--accent)';
 // Shared font size for modal header buttons
 const BUTTON_FONT_SIZE = 14;
 
+// Uniform style so label-based "buttons" match actual <button> elements
+const LIB_BTN_STYLE: React.CSSProperties = {
+  background: PANEL,
+  color: TEXT,
+  padding: '6px 10px',
+  borderRadius: 8,
+  border: `1px solid ${BORDER}`,
+  fontSize: BUTTON_FONT_SIZE,
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: 1.2
+};
+
 export default function Page() {
   // ----------- State: cards on the page -----------
   const [cards, setCards] = useState<Card[]>(() => {
@@ -254,6 +268,67 @@ export default function Page() {
     }).catch(() => alert('Failed to read file'));
   }
 
+  // New: Import Library (layouts) from file
+  function importLibrary(file: File) {
+    file.text().then(t => {
+      let data: any;
+      try {
+        data = JSON.parse(t);
+      } catch {
+        alert('Invalid JSON');
+        return;
+      }
+
+      // Accept common shapes:
+      // - { layouts: [...] }
+      // - [ ... ] (array of layouts)
+      const incoming = Array.isArray(data) ? data : data?.layouts;
+      if (!Array.isArray(incoming)) {
+        alert('Invalid library file (expected { "layouts": [...] })');
+        return;
+      }
+
+      // Build a set of existing titles to avoid collisions
+      const existingTitles = new Set(layouts.map(l => l.title));
+
+      const normalized: LayoutEntry[] = incoming.map((l: any, li: number) => {
+        // normalize cards
+        const cardsArr: Card[] = Array.isArray(l?.cards) ? l.cards.map((c: any, i: number) => ({
+          id: String(c?.id ?? 'c' + Date.now() + '_' + li + '_' + i),
+          title: String(c?.title ?? 'Untitled'),
+          text: String(c?.text ?? ''),
+          createdAt: Number.isFinite(+c?.createdAt) ? +c.createdAt : (Date.now() - i)
+        })) : [];
+
+        // Sort oldest->newest
+        cardsArr.sort((a, b) => a.createdAt - b.createdAt);
+
+        // Title uniqueness across existing + within this import
+        let baseTitle = String(l?.title ?? 'Untitled');
+        let uniqueTitle = baseTitle.trim() || 'Untitled';
+        while (existingTitles.has(uniqueTitle)) uniqueTitle = uniqueTitle + '-2';
+        existingTitles.add(uniqueTitle);
+
+        const savedAt = Number.isFinite(+l?.savedAt) ? +l.savedAt : Date.now() - li;
+
+        return {
+          id: 'L' + Date.now() + '_' + li,
+          title: uniqueTitle,
+          savedAt,
+          cards: cardsArr
+        };
+      });
+
+      if (normalized.length === 0) {
+        toast('ℹ️ No layouts found in file');
+        return;
+      }
+
+      setLayouts(prev => [...prev, ...normalized]);
+      toast(`📚 Imported ${normalized.length} layout${normalized.length > 1 ? 's' : ''}`);
+    }).catch(() => alert('Failed to read file'));
+  }
+
   // ----------- Styles for preview clamping (3 lines) -----------
   const LINE_HEIGHT = 1.4; // visual line-height multiplier
   const PREVIEW_LINES = 3;
@@ -308,7 +383,7 @@ export default function Page() {
             priority
             style={{ display: 'block' }}
           />
-        <div style={{ fontWeight: 700, fontSize: 20 }}>
+          <div style={{ fontWeight: 700, fontSize: 20 }}>
             CopyAI
           </div>
         </div>
@@ -539,18 +614,11 @@ export default function Page() {
                 rowGap: 8
               }}
             >
-              {/* Left cluster: Import / Export Current Layout / Export Library */}
+              {/* Left cluster: Import / Export Current Layout / Import Library / Export Library */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                {/* Import current layout (cards) */}
                 <label
-                  style={{
-                    background: PANEL,
-                    color: TEXT,
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    cursor: 'pointer',
-                    border: `1px solid ${BORDER}`,
-                    fontSize: BUTTON_FONT_SIZE
-                  }}
+                  style={LIB_BTN_STYLE}
                   title="Import a layout (JSON file with cards)"
                 >
                   Import Layout From File
@@ -562,31 +630,33 @@ export default function Page() {
                   />
                 </label>
 
+                {/* Export current layout (cards) */}
                 <button
                   onClick={exportJSON}
-                  style={{
-                    background: PANEL,
-                    color: TEXT,
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    border: `1px solid ${BORDER}`,
-                    fontSize: BUTTON_FONT_SIZE
-                  }}
+                  style={LIB_BTN_STYLE}
                   title="Export current layout as JSON"
                 >
                   Export Current Layout
                 </button>
 
+                {/* NEW: Import Library (layouts) — placed to the LEFT of Export Library */}
+                <label
+                  style={LIB_BTN_STYLE}
+                  title="Import a saved library (JSON with layouts)"
+                >
+                  Import Library From File
+                  <input
+                    type="file"
+                    accept="application/json"
+                    hidden
+                    onChange={(e) => e.target.files && importLibrary(e.target.files[0])}
+                  />
+                </label>
+
+                {/* Export Library (layouts) */}
                 <button
                   onClick={exportLibrary}
-                  style={{
-                    background: PANEL,
-                    color: TEXT,
-                    padding: '6px 10px',
-                    borderRadius: 8,
-                    border: `1px solid ${BORDER}`,
-                    fontSize: BUTTON_FONT_SIZE
-                  }}
+                  style={LIB_BTN_STYLE}
                   title="Export all saved layouts as JSON"
                 >
                   Export Library
@@ -647,3 +717,4 @@ export default function Page() {
     </div>
   );
 }
+``
