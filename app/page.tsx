@@ -113,6 +113,15 @@ export default function Page() {
   // Not persisted; resets on reload.
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
 
+function toggleExpanded(id: string) {
+  setExpanded(prev => {
+    const next = new Set(prev);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  });
+}
+
   // Document Library: folders filter and preview
   type SpecialFolder = 'all' | 'unfiled';
   const [activeFolder, setActiveFolder] = useState<string | SpecialFolder>('all');
