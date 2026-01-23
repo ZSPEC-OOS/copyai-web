@@ -1254,6 +1254,20 @@ export default function Page() {
           text-decoration: none;
           max-width: 100%;
         }
+
+        
+/* 🔥 Restore original homepage button sizes */
+[data-primary-actions] .btn {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+  border-radius: 8px !important;
+}
+
+[data-primary-actions] .btn-small {
+  padding: 8px 12px !important;
+  font-size: 14px !important;
+}
+
         .btn-small { padding: 6px 10px; font-size: ${BUTTON_FONT_SIZE}px; }
         .btn-mini { padding: 2px 8px; font-size: 12px; line-height: 1.4; border-radius: 6px; }
         .btn-accent { background: ${ACCENT}; color: #fff; border-color: ${ACCENT}; }
