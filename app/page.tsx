@@ -25,6 +25,9 @@ const BORDER = 'var(--border)';
 const TEXT = 'var(--text)';
 const ACCENT = 'var(--accent)';
 
+// Shared font size for modal header buttons
+const BUTTON_FONT_SIZE = 14;
+
 export default function Page() {
   // ----------- State: cards on the page -----------
   const [cards, setCards] = useState<Card[]>(() => {
@@ -258,13 +261,13 @@ export default function Page() {
 
   // Collapsed preview: fixed height (equal for all), 3 lines visible, rest hidden
   const previewCollapsedStyle: React.CSSProperties = {
-    whiteSpace: 'pre-line',             // keep line breaks; allow wrapping
+    whiteSpace: 'pre-line',
     display: '-webkit-box',
     WebkitLineClamp: PREVIEW_LINES as unknown as number,
     WebkitBoxOrient: 'vertical' as unknown as 'vertical',
     overflow: 'hidden',
-    lineHeight: LINE_HEIGHT as unknown as string, // ensure consistent box height
-    height: PREVIEW_HEIGHT,             // lock the preview box height
+    lineHeight: LINE_HEIGHT as unknown as string,
+    height: PREVIEW_HEIGHT,
     opacity: 1
   };
 
@@ -305,7 +308,7 @@ export default function Page() {
             priority
             style={{ display: 'block' }}
           />
-          <div style={{ fontWeight: 700, fontSize: 20 }}>
+        <div style={{ fontWeight: 700, fontSize: 20 }}>
             CopyAI
           </div>
         </div>
@@ -539,7 +542,15 @@ export default function Page() {
               {/* Left cluster: Import / Export Current Layout / Export Library */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <label
-                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${BORDER}` }}
+                  style={{
+                    background: PANEL,
+                    color: TEXT,
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    cursor: 'pointer',
+                    border: `1px solid ${BORDER}`,
+                    fontSize: BUTTON_FONT_SIZE
+                  }}
                   title="Import a layout (JSON file with cards)"
                 >
                   Import Layout From File
@@ -553,7 +564,14 @@ export default function Page() {
 
                 <button
                   onClick={exportJSON}
-                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                  style={{
+                    background: PANEL,
+                    color: TEXT,
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    border: `1px solid ${BORDER}`,
+                    fontSize: BUTTON_FONT_SIZE
+                  }}
                   title="Export current layout as JSON"
                 >
                   Export Current Layout
@@ -561,17 +579,30 @@ export default function Page() {
 
                 <button
                   onClick={exportLibrary}
-                  style={{ background: PANEL, color: TEXT, padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}` }}
+                  style={{
+                    background: PANEL,
+                    color: TEXT,
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    border: `1px solid ${BORDER}`,
+                    fontSize: BUTTON_FONT_SIZE
+                  }}
                   title="Export all saved layouts as JSON"
                 >
                   Export Library
                 </button>
               </div>
 
-              {/* Right: Close */}
+              {/* Right: Close (purple) */}
               <button
                 onClick={() => setShowLibrary(false)}
-                style={{ background: ACCENT, color: '#fff', padding: '6px 10px', borderRadius: 8 }}
+                style={{
+                  background: ACCENT,
+                  color: '#fff',
+                  padding: '6px 10px',
+                  borderRadius: 8,
+                  fontSize: BUTTON_FONT_SIZE
+                }}
               >
                 Close
               </button>
@@ -616,4 +647,3 @@ export default function Page() {
     </div>
   );
 }
-``
