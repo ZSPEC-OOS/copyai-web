@@ -247,15 +247,34 @@ export default function Page() {
     URL.revokeObjectURL(url);
   }
 
-  function exportLibrary() {
-    const blob = new Blob([JSON.stringify({ layouts }, null, 2)], { type: 'application/json' });
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = 'library.json';
-    a.click();
-    URL.revokeObjectURL(url);
-  }
+ function exportLibrary() {
+  const payload = JSON.stringify({ layouts }, null, 2);
+
+  // Primary: modern clipboard API
+  navigator.clipboard.writeText(payload)
+    .then(() => {
+      toast('✅ Library copied to clipboard');
+    })
+    .catch(() => {
+      // Fallback: create a hidden textarea and copy via execCommand
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = payload;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.setAttribute('readonly', 'true');
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        toast('✅ Library copied to clipboard');
+      } catch {
+        // Last resort: show an alert so user can copy manually
+        alert('Copy failed. Your browser may block clipboard access.\n\nHere is the library JSON so you can copy it manually:\n\n' + payload);
+      }
+    });
+}
+
 
   function importJSON(file: File) {
     file.text().then(t => {
